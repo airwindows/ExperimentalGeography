@@ -1,3 +1,4 @@
 name: ExperimentalGeography
 main: experimentalgeography.ExperimentalGeography
 version: 0.1
+load: STARTUP

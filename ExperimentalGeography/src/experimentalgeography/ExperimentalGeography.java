@@ -22,60 +22,7 @@ import org.bukkit.scheduler.BukkitRunnable;
  */
 public class ExperimentalGeography extends JavaPlugin implements Listener {
 
-    private final File chunkScheduleFile = new File("experimentalgeography.txt");
-    private final Set<ChunkPosition> loadedChunks = Sets.newHashSet();
-    private final Set<ChunkPosition> pendingChunks = Sets.newHashSet();
-    private BukkitRunnable deferredSaver;
-
-    private void loadChunkSchedule() {
-        loadedChunks.clear();
-        pendingChunks.clear();
-
-        if (chunkScheduleFile.exists()) {
-            MapFileMap map = MapFileMap.read(chunkScheduleFile);
-            loadedChunks.addAll(map.getList("loadedChunks", ChunkPosition.class));
-            pendingChunks.addAll(map.getList("pendingChunks", ChunkPosition.class));
-        }
-    }
-
-    private void saveChunkSchedule() {
-        MapFileMap map = new MapFileMap();
-        map.put("loadedChunks", loadedChunks);
-        map.put("pendingChunks", pendingChunks);
-        MapFileMap.write(chunkScheduleFile, map);
-    }
-
-    private void saveChunkScheduleLater() {
-        if (deferredSaver == null) {
-            deferredSaver = new BukkitRunnable() {
-                @Override
-                public void run() {
-                    deferredSaver = null;
-                    saveChunkSchedule();
-                }
-            };
-
-            deferredSaver.runTaskLater(this, 5 * 20);
-        }
-    }
-
-    private void markNewChunk(ChunkPosition pos) {
-        loadedChunks.add(pos);
-        pendingChunks.add(pos);
-    }
-
-    private List<ChunkPosition> nextChunksToPopulate() {
-        List<ChunkPosition> ready = Lists.newArrayList();
-
-        for (ChunkPosition candidate : pendingChunks) {
-            if (loadedChunks.containsAll(candidate.neighbors())) {
-                ready.add(candidate);
-            }
-        }
-
-        pendingChunks.removeAll(ready);
-        return ready;
-    }
+    private final ChunkPopulationSchedule populationSchedule = new ChunkPopulationSchedule(this);
 
     /**
      * This method is called once per chunk, when the chunk is first
@@ -97,26 +44,25 @@ public class ExperimentalGeography extends JavaPlugin implements Listener {
     @Override
     public void onEnable() {
         super.onEnable();
-        loadChunkSchedule();
         getServer().getPluginManager().registerEvents(this, this);
     }
 
     @Override
     public void onDisable() {
         super.onDisable();
-        saveChunkSchedule();
+        populationSchedule.save();
     }
 
     @EventHandler
     public void onChunkLoad(ChunkLoadEvent e) {
         if (e.isNewChunk()) {
-            markNewChunk(ChunkPosition.of(e.getChunk()));
+            populationSchedule.schedule(ChunkPosition.of(e.getChunk()));
 
-            for (ChunkPosition next : nextChunksToPopulate()) {
+            for (ChunkPosition next : populationSchedule.next()) {
                 populateChunk(next.getChunk());
             }
-            
-            saveChunkScheduleLater();
+
+            populationSchedule.saveLater();
         }
     }
 }

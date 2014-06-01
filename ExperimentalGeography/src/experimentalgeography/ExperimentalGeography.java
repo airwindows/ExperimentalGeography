@@ -4,6 +4,9 @@
  */
 package experimentalgeography;
 
+import java.util.*;
+import com.google.common.collect.*;
+
 import org.bukkit.*;
 import org.bukkit.block.*;
 import org.bukkit.event.*;
@@ -16,6 +19,27 @@ import org.bukkit.plugin.java.JavaPlugin;
  * @author DanJ
  */
 public class ExperimentalGeography extends JavaPlugin implements Listener {
+
+    private final Set<ChunkPosition> loadedChunks = Sets.newHashSet();
+    private final Set<ChunkPosition> pendingChunks = Sets.newHashSet();
+
+    private void markNewChunk(ChunkPosition pos) {
+        loadedChunks.add(pos);
+        pendingChunks.add(pos);
+    }
+
+    private List<ChunkPosition> nextChunksToPopulate() {
+        List<ChunkPosition> ready = Lists.newArrayList();
+
+        for (ChunkPosition candidate : pendingChunks) {
+            if (loadedChunks.containsAll(candidate.neighbors())) {
+                ready.add(candidate);
+            }
+        }
+
+        pendingChunks.removeAll(ready);
+        return ready;
+    }
 
     /**
      * This method is called once per chunk, when the chunk is first
@@ -43,7 +67,12 @@ public class ExperimentalGeography extends JavaPlugin implements Listener {
     @EventHandler
     public void onChunkLoad(ChunkLoadEvent e) {
         if (e.isNewChunk()) {
-            populateChunk(e.getChunk());
+            markNewChunk(ChunkPosition.of(e.getChunk()));
+
+            for (ChunkPosition next : nextChunksToPopulate()) {
+                Chunk ch = next.getWorld().getChunkAt(next.x, next.z);
+                populateChunk(ch);
+            }
         }
     }
 }

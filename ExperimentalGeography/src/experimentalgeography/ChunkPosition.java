@@ -14,7 +14,7 @@ import org.bukkit.entity.*;
  *
  * @author DanJ
  */
-public final class ChunkPosition implements Comparable<ChunkPosition> {
+public final class ChunkPosition implements MapFileMap.Storable, Comparable<ChunkPosition> {
 
     public final int x;
     public final int z;
@@ -51,6 +51,16 @@ public final class ChunkPosition implements Comparable<ChunkPosition> {
         return of(location.getChunk());
     }
 
+    /**
+     * This method returns the actual chunk object corresponding
+     * to this position.
+     * 
+     * @return The chunk object itself.
+     */
+    public Chunk getChunk() {
+        return getWorld().getChunkAt(x, z);
+    }
+    
     /**
      * This method returns the world that contains the chunk named.
      *
@@ -99,7 +109,7 @@ public final class ChunkPosition implements Comparable<ChunkPosition> {
 
         return false;
     }
-
+    
     /**
      * This method returns a set containing all the positions that surrond this
      * one, in all 8 directions.
@@ -180,6 +190,23 @@ public final class ChunkPosition implements Comparable<ChunkPosition> {
                 }
             }
         }
+    }
+
+    ////////////////////////////////
+    // MapFileMap Storage
+    public ChunkPosition(MapFileMap map) {
+        this.x = map.getInteger("x");
+        this.z = map.getInteger("z");
+        this.worldName = map.getString("world");
+    }
+
+    @Override
+    public Map<?, ?> toMap() {
+        Map<String, Object> map = Maps.newHashMap();
+        map.put("x", x);
+        map.put("z", z);
+        map.put("world", worldName);
+        return map;
     }
 
     @Override

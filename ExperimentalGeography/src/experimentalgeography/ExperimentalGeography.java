@@ -31,12 +31,58 @@ public class ExperimentalGeography extends JavaPlugin implements Listener {
      * @param chunk The chunk to populate.
      */
     private void populateChunk(ChunkPosition where) {
-        Chunk chunk = where.getChunk();
         OriginalChunkInfo info = populationSchedule.getOriginalChunkInfo(where);
 
-        Block block = chunk.getBlock(8, info.highestBlockY, 8);
+        ChunkPosition[] adjacent = {
+            new ChunkPosition(where.x - 1, where.z, where.worldName),
+            new ChunkPosition(where.x + 1, where.z, where.worldName),
+            new ChunkPosition(where.x, where.z - 1, where.worldName),
+            new ChunkPosition(where.x, where.z + 1, where.worldName)
+        };
 
-        block.setType(Material.BEDROCK);
+        OriginalChunkInfo whereInfo = populationSchedule.getOriginalChunkInfo(where);
+        World world = where.getWorld();
+
+        for (ChunkPosition dest : adjacent) {
+            OriginalChunkInfo destInfo = populationSchedule.getOriginalChunkInfo(dest);
+
+            Location start = new Location(world, where.x * 16 + 8, whereInfo.highestBlockY, where.z * 16 + 8);
+            Location end = new Location(world, dest.x * 16 + 8, destInfo.highestBlockY, dest.z * 16 + 8);
+
+            linkBlocks(where, start, end, Material.BEDROCK);
+        }
+    }
+
+    /**
+     * This is a line drawing function in minecraft blocks; it's kinda lame but
+     * it does okay. It draws a line in three-space between two points, but only
+     * touches the blocks of the chunk specified. This is needed because if we
+     * touch a chunk not loaded, it will be loaded, and this leads to infinite
+     * regress.
+     *
+     * @param target The chunk we are generating. We change only its blocks.
+     * @param start The start point of the line.
+     * @param end The end point of the line.
+     */
+    private void linkBlocks(ChunkPosition target, Location start, Location end, Material material) {
+        double dist = start.distance(end);
+
+        if (dist > 0.0) {
+            World world = start.getWorld();
+
+            for (double i = dist; i >= 0; --i) {
+                double s = i / dist;
+                double e = 1.0 - s;
+                int x = (int) (start.getX() * s + end.getX() * e);
+                int y = (int) (start.getY() * s + end.getY() * e);
+                int z = (int) (start.getZ() * s + end.getZ() * e);
+
+                if (target.contains(x, z)) {
+                    Block block = world.getBlockAt(x, y, z);
+                    block.setType(material);
+                }
+            }
+        }
     }
 
     @Override

@@ -52,15 +52,15 @@ public final class ChunkPosition implements MapFileMap.Storable, Comparable<Chun
     }
 
     /**
-     * This method returns the actual chunk object corresponding
-     * to this position.
-     * 
+     * This method returns the actual chunk object corresponding to this
+     * position.
+     *
      * @return The chunk object itself.
      */
     public Chunk getChunk() {
         return getWorld().getChunkAt(x, z);
     }
-    
+
     /**
      * This method returns the world that contains the chunk named.
      *
@@ -109,7 +109,24 @@ public final class ChunkPosition implements MapFileMap.Storable, Comparable<Chun
 
         return false;
     }
-    
+
+    /**
+     * This method returns true if the location given is in the chunk indicated
+     * by this position.
+     *
+     * @param candidateX The x co-ordinate to check.
+     * @param candidateZ The z co-ordinate to check.
+     * @return True if the entity is in the chunk.
+     */
+    public boolean contains(int candidateX, int candidateZ) {
+        final int minX = x * 16;
+        final int minZ = z * 16;
+        final int maxX = minX + 15;
+        final int maxZ = minZ + 15;
+
+        return candidateX >= minX && candidateX <= maxX && candidateZ >= minZ && candidateZ <= maxZ;
+    }
+
     /**
      * This method returns a set containing all the positions that surrond this
      * one, in all 8 directions.

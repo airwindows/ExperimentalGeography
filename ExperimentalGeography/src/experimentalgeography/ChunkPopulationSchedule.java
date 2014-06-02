@@ -8,6 +8,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.*;
 import java.io.*;
 import java.util.*;
+import org.bukkit.*;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.*;
 
@@ -22,7 +23,7 @@ public class ChunkPopulationSchedule {
 
     private final Plugin plugin;
     private final File chunkScheduleFile;
-    private final Set<ChunkPosition> loadedChunks = Sets.newHashSet();
+    private final Map<ChunkPosition, OriginalChunkInfo> originalChunkInfos = Maps.newHashMap();
     private final Set<ChunkPosition> pendingChunks = Sets.newHashSet();
     private BukkitRunnable deferredSaver;
 
@@ -36,7 +37,11 @@ public class ChunkPopulationSchedule {
 
         if (chunkScheduleFile.exists()) {
             MapFileMap map = MapFileMap.read(chunkScheduleFile);
-            loadedChunks.addAll(map.getList("loadedChunks", ChunkPosition.class));
+
+            for (OriginalChunkInfo info : map.getList("loadedChunks", OriginalChunkInfo.class)) {
+                originalChunkInfos.put(info.position, info);
+            }
+
             pendingChunks.addAll(map.getList("pendingChunks", ChunkPosition.class));
         }
     }
@@ -47,7 +52,7 @@ public class ChunkPopulationSchedule {
      */
     public void save() {
         MapFileMap map = new MapFileMap();
-        map.put("loadedChunks", loadedChunks);
+        map.put("loadedChunks", originalChunkInfos.values());
         map.put("pendingChunks", pendingChunks);
         MapFileMap.write(chunkScheduleFile, map);
     }
@@ -78,8 +83,9 @@ public class ChunkPopulationSchedule {
      *
      * @param pos A newly loaded chunk.
      */
-    public void schedule(ChunkPosition pos) {
-        loadedChunks.add(pos);
+    public void schedule(Chunk chunk) {
+        ChunkPosition pos = ChunkPosition.of(chunk);
+        originalChunkInfos.put(pos, new OriginalChunkInfo(chunk));
         pendingChunks.add(pos);
     }
 
@@ -96,13 +102,35 @@ public class ChunkPopulationSchedule {
     public List<ChunkPosition> next() {
         List<ChunkPosition> ready = Lists.newArrayList();
 
+        Set<ChunkPosition> loaded = originalChunkInfos.keySet();
+
         for (ChunkPosition candidate : pendingChunks) {
-            if (loadedChunks.containsAll(candidate.neighbors())) {
+            if (loaded.containsAll(candidate.neighbors())) {
                 ready.add(candidate);
             }
         }
 
         pendingChunks.removeAll(ready);
         return ready;
+    }
+
+    /**
+     * This returns the original chunk data that was captured when that chunk
+     * was first loaded, before we populated it.
+     *
+     * @param pos The chunk whose data is needed.
+     * @return The chunk info object for the chunk.
+     * @throws IllegalArgumentException if the chunk specified has not yet
+     * loaded.
+     */
+    public OriginalChunkInfo getOriginalChunkInfo(ChunkPosition pos) {
+        OriginalChunkInfo info = originalChunkInfos.get(pos);
+
+        if (info == null) {
+            throw new IllegalArgumentException(String.format(
+                    "The chunk at %s has not loaded yet.",
+                    pos));
+        }
+        return info;
     }
 }

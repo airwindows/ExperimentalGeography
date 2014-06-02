@@ -30,13 +30,11 @@ public class ExperimentalGeography extends JavaPlugin implements Listener {
      *
      * @param chunk The chunk to populate.
      */
-    private void populateChunk(Chunk chunk) {
-        int centerX = chunk.getX() * 16 + 8;
-        int centerZ = chunk.getZ() * 16 + 8;
+    private void populateChunk(ChunkPosition where) {
+        Chunk chunk = where.getChunk();
+        OriginalChunkInfo info = populationSchedule.getOriginalChunkInfo(where);
 
-        int y = chunk.getWorld().getHighestBlockYAt(centerX, centerZ);
-
-        Block block = chunk.getBlock(8, y, 8);
+        Block block = chunk.getBlock(8, info.highestBlockY, 8);
 
         block.setType(Material.BEDROCK);
     }
@@ -56,10 +54,10 @@ public class ExperimentalGeography extends JavaPlugin implements Listener {
     @EventHandler
     public void onChunkLoad(ChunkLoadEvent e) {
         if (e.isNewChunk()) {
-            populationSchedule.schedule(ChunkPosition.of(e.getChunk()));
+            populationSchedule.schedule(e.getChunk());
 
             for (ChunkPosition next : populationSchedule.next()) {
-                populateChunk(next.getChunk());
+                populateChunk(next);
             }
 
             populationSchedule.saveLater();

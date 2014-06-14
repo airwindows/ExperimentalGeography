@@ -49,8 +49,11 @@ public class ExperimentalGeography extends JavaPlugin implements Listener {
 
         for (ChunkPosition dest : adjacent) {
             OriginalChunkInfo destInfo = populationSchedule.getOriginalChunkInfo(dest);
-            Location start = perturbNode(world, where, (int) (whereInfo.highestBlockY / 3));
-            Location end = perturbNode(world, dest, (int) (destInfo.highestBlockY / 3));
+            int whereY = whereInfo.nodeY;
+            int destY = destInfo.nodeY;
+
+            Location start = perturbNode(world, where, whereY);
+            Location end = perturbNode(world, dest, destY);
             linkBlocks(where, start, end, Material.SMOOTH_BRICK);
             start.add(0, 2, 0);
             end.add(0, 2, 0);
@@ -59,6 +62,13 @@ public class ExperimentalGeography extends JavaPlugin implements Listener {
     }
 
     public static Location perturbNode(World world, ChunkPosition where, int y) {
+        Random whereRandomOffset = getChunkRandom(world, where);
+        int whereOffsetX = whereRandomOffset.nextInt(16);
+        int whereOffsetZ = whereRandomOffset.nextInt(16);
+        return new Location(world, where.x * 16 + whereOffsetX, y, where.z * 16 + whereOffsetZ);
+    }
+
+    public static Random getChunkRandom(World world, ChunkPosition where) {
         int seedx = where.x;
         int seedz = where.z;
         if (seedx == 0) {
@@ -67,11 +77,7 @@ public class ExperimentalGeography extends JavaPlugin implements Listener {
         if (seedz == 0) {
             seedz = 256;
         }
-        Random whereRandomOffset = new Random((seedx * seedz) + world.getSeed());
-        whereRandomOffset.nextInt(16);
-        int whereOffsetX = whereRandomOffset.nextInt(16);
-        int whereOffsetZ = whereRandomOffset.nextInt(16);
-        return new Location(world, where.x * 16 + whereOffsetX, y, where.z * 16 + whereOffsetZ);
+        return new Random((seedx * seedz) + world.getSeed());
     }
 
     /**

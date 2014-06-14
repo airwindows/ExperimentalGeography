@@ -20,8 +20,9 @@ public final class OriginalChunkInfo implements MapFileMap.Storable {
 
     public OriginalChunkInfo(Chunk chunk) {
         this.position = ChunkPosition.of(chunk);
-        int centerX = position.x * 16 + 8;
-        int centerZ = position.z * 16 + 8;
+        Location center = ExperimentalGeography.perturbNode(chunk.getWorld(), position, 0);
+        int centerX = (int)center.getX();
+        int centerZ = (int)center.getZ();
 
         highestBlockY = chunk.getWorld().getHighestBlockYAt(centerX, centerZ);
     }

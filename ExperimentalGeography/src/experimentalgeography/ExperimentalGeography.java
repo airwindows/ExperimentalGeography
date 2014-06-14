@@ -40,17 +40,27 @@ public class ExperimentalGeography extends JavaPlugin implements Listener {
             new ChunkPosition(where.x, where.z + 1, where.worldName)
         };
 
+        //first is X offset increasing, second is inverse X offset
+        //third is Z offset increasing, fourth is inverse Z offset
+        //combine to have 'density of nearby offset nodes at this chunk'
+
         OriginalChunkInfo whereInfo = populationSchedule.getOriginalChunkInfo(where);
         World world = where.getWorld();
 
         for (ChunkPosition dest : adjacent) {
             OriginalChunkInfo destInfo = populationSchedule.getOriginalChunkInfo(dest);
-
-            Location start = new Location(world, where.x * 16 + 8, whereInfo.highestBlockY, where.z * 16 + 8);
-            Location end = new Location(world, dest.x * 16 + 8, destInfo.highestBlockY, dest.z * 16 + 8);
-
+            Location start = perturbNode(world, where, whereInfo.highestBlockY);
+            Location end = perturbNode(world, dest, destInfo.highestBlockY);
             linkBlocks(where, start, end, Material.BEDROCK);
         }
+    }
+
+    public static Location perturbNode(World world, ChunkPosition where, int y) {
+        Random whereRandomOffset = new Random(where.x * where.z);
+        whereRandomOffset.nextInt(16);
+        int whereOffsetX = whereRandomOffset.nextInt(16);
+        int whereOffsetZ = whereRandomOffset.nextInt(16);
+        return new Location(world, where.x * 16 + whereOffsetX, y, where.z * 16 + whereOffsetZ);
     }
 
     /**
@@ -66,20 +76,27 @@ public class ExperimentalGeography extends JavaPlugin implements Listener {
      */
     private void linkBlocks(ChunkPosition target, Location start, Location end, Material material) {
         double dist = start.distance(end);
-
+        int size = (int)Math.sqrt(Math.max(2,32-dist));
         if (dist > 0.0) {
             World world = start.getWorld();
 
             for (double i = dist; i >= 0; --i) {
                 double s = i / dist;
                 double e = 1.0 - s;
-                int x = (int) (start.getX() * s + end.getX() * e);
-                int y = (int) (start.getY() * s + end.getY() * e);
-                int z = (int) (start.getZ() * s + end.getZ() * e);
 
-                if (target.contains(x, z)) {
-                    Block block = world.getBlockAt(x, y, z);
-                    block.setType(material);
+                for (int dx = 0; dx <= size; ++dx) {
+                    for (int dy = 0; dy <= size; ++dy) {
+                        for (int dz = 0; dz <= size; ++dz) {
+                            
+                            int x = (int) (start.getX() * s + end.getX() * e) + dx;
+                            int y = (int) (start.getY() * s + end.getY() * e) + dy;
+                            int z = (int) (start.getZ() * s + end.getZ() * e) + dz;
+                            if (target.contains(x, z)) {
+                                Block block = world.getBlockAt(x, y, z);
+                                block.setType(material);
+                            }
+                        }
+                    }
                 }
             }
         }

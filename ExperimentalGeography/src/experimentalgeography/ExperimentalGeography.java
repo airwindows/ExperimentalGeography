@@ -49,14 +49,25 @@ public class ExperimentalGeography extends JavaPlugin implements Listener {
 
         for (ChunkPosition dest : adjacent) {
             OriginalChunkInfo destInfo = populationSchedule.getOriginalChunkInfo(dest);
-            Location start = perturbNode(world, where, whereInfo.highestBlockY);
-            Location end = perturbNode(world, dest, destInfo.highestBlockY);
-            linkBlocks(where, start, end, Material.BEDROCK);
+            Location start = perturbNode(world, where, (int) (whereInfo.highestBlockY / 3));
+            Location end = perturbNode(world, dest, (int) (destInfo.highestBlockY / 3));
+            linkBlocks(where, start, end, Material.SMOOTH_BRICK);
+            start.add(0, 2, 0);
+            end.add(0, 2, 0);
+            linkBlocks(where, start, end, Material.AIR);
         }
     }
 
     public static Location perturbNode(World world, ChunkPosition where, int y) {
-        Random whereRandomOffset = new Random(where.x * where.z);
+        int seedx = where.x;
+        int seedz = where.z;
+        if (seedx == 0) {
+            seedx = 256;
+        }
+        if (seedz == 0) {
+            seedz = 256;
+        }
+        Random whereRandomOffset = new Random((seedx * seedz) + world.getSeed());
         whereRandomOffset.nextInt(16);
         int whereOffsetX = whereRandomOffset.nextInt(16);
         int whereOffsetZ = whereRandomOffset.nextInt(16);
@@ -76,7 +87,10 @@ public class ExperimentalGeography extends JavaPlugin implements Listener {
      */
     private void linkBlocks(ChunkPosition target, Location start, Location end, Material material) {
         double dist = start.distance(end);
-        int size = (int)Math.sqrt(Math.max(2,32-dist));
+        int size = (int) (Math.cbrt(Math.max(0, 32 - dist)) * 1.8);
+        if (size == 1) {
+            size = 0;
+        }
         if (dist > 0.0) {
             World world = start.getWorld();
 
@@ -84,17 +98,40 @@ public class ExperimentalGeography extends JavaPlugin implements Listener {
                 double s = i / dist;
                 double e = 1.0 - s;
 
-                for (int dx = 0; dx <= size; ++dx) {
-                    for (int dy = 0; dy <= size; ++dy) {
-                        for (int dz = 0; dz <= size; ++dz) {
-                            
-                            int x = (int) (start.getX() * s + end.getX() * e) + dx;
+                for (int dx = 0; dx < size; ++dx) {
+                    for (int dy = 0; dy < size; ++dy) {
+                        for (int dz = 0; dz < size; ++dz) {
+                            int x = (int) (start.getX() * s + end.getX() * e) + dx - (size / 2);
                             int y = (int) (start.getY() * s + end.getY() * e) + dy;
-                            int z = (int) (start.getZ() * s + end.getZ() * e) + dz;
+                            int z = (int) (start.getZ() * s + end.getZ() * e) + dz - (size / 2);
                             if (target.contains(x, z)) {
                                 Block block = world.getBlockAt(x, y, z);
-                                block.setType(material);
+                                if (block.getType() != Material.DIAMOND_ORE) {
+                                    block.setType(material);
+                                }
                             }
+                        }
+                    }
+                }
+            }
+            //here we tack on the glowstone ceiling lights, and/or call the spawner/loot math
+            int x = (int) start.getX();
+            int y = (int) start.getY();
+            int z = (int) start.getZ();
+
+
+            //we'll be passing in variations on this by biome
+            int darkness = 16;
+            //distance between nodes has to be smaller than this to place a light
+            //if it's a big distance it will be darker: large caves get lit
+
+            if (material == Material.AIR && dist < darkness) {
+                if (target.contains(x, z)) {
+                    for (; y < 255; ++y) {
+                        Block block = world.getBlockAt(x, y, z);
+                        if (block.getType() != Material.AIR) {
+                            block.setType(Material.GLOWSTONE);
+                            break;
                         }
                     }
                 }

@@ -29,10 +29,13 @@ public final class OriginalChunkInfo implements MapFileMap.Storable {
 
         if (chunk.getWorld().getEnvironment() != World.Environment.NORMAL) {
             Random rnd = ExperimentalGeography.getChunkRandom(chunk.getWorld(), position);
-            nodeY = rnd.nextInt(64) + 32;
-            System.out.println(nodeY);
+            int dummynodeY = rnd.nextInt(64);
+            nodeY = rnd.nextInt(24) + 48;
         } else {
-            nodeY = highestBlockY / 2;
+            nodeY = (int) (highestBlockY / 1.5) - 16;
+            //divisor controls steepness, subtract moves tunnels down nearer bedrock
+            //these can be biome dependent as it will linearly shift between them
+            //we can have some biomes very flat, or some where it intersects surface a lot
         }
     }
 

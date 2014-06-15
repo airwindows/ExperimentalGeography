@@ -63,6 +63,7 @@ public class ExperimentalGeography extends JavaPlugin implements Listener {
 
     public static Location perturbNode(World world, ChunkPosition where, int y) {
         Random whereRandomOffset = getChunkRandom(world, where);
+        int dummyOffset = whereRandomOffset.nextInt(16);
         int whereOffsetX = whereRandomOffset.nextInt(16);
         int whereOffsetZ = whereRandomOffset.nextInt(16);
         return new Location(world, where.x * 16 + whereOffsetX, y, where.z * 16 + whereOffsetZ);
@@ -72,10 +73,10 @@ public class ExperimentalGeography extends JavaPlugin implements Listener {
         int seedx = where.x;
         int seedz = where.z;
         if (seedx == 0) {
-            seedx = 256;
+            seedx = 64;
         }
         if (seedz == 0) {
-            seedz = 256;
+            seedz = 64;
         }
         return new Random((seedx * seedz) + world.getSeed());
     }
@@ -93,7 +94,7 @@ public class ExperimentalGeography extends JavaPlugin implements Listener {
      */
     private void linkBlocks(ChunkPosition target, Location start, Location end, Material material) {
         double dist = start.distance(end);
-        int size = (int) (Math.cbrt(Math.max(0, 32 - dist)) * 1.8);
+        int size = (int) (Math.cbrt(Math.max(0, 32 - dist)) * 2.1);
         if (size == 1) {
             size = 0;
         }
@@ -127,9 +128,10 @@ public class ExperimentalGeography extends JavaPlugin implements Listener {
 
 
             //we'll be passing in variations on this by biome
-            int darkness = 16;
+            int darkness = 64;
             //distance between nodes has to be smaller than this to place a light
             //if it's a big distance it will be darker: large caves get lit
+            //16 is fairly dark, 32 still has some darkness
 
             if (material == Material.AIR && dist < darkness) {
                 if (target.contains(x, z)) {

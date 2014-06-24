@@ -66,6 +66,24 @@ public final class MapFileMap extends HashMap<String, Object> {
     }
 
     /**
+     * This method returns a value as an integer; it will parse the value if
+     * required to get one.
+     *
+     * @param key The key of the value.
+     * @return The value as a long integer.
+     * @throws IllegalArgumentException If the key is not found.
+     */
+    public long getLong(String key) {
+        Object value = getObject(key);
+
+        if (value instanceof Number) {
+            return ((Number) value).longValue();
+        } else {
+            return Long.parseLong(value.toString());
+        }
+    }
+
+    /**
      * This method returns a value as a map file map; it will copy any other map
      * into a map file map, converting they keys to strings if required.
      *
@@ -467,9 +485,9 @@ public final class MapFileMap extends HashMap<String, Object> {
      * contain maps, which are preserved.
      *
      * This method tries to write a temp file and rename it over the original;
-     * on typical modern file-system, this makes the update atomic. If the rename
-     * fails (ie, if the original is locked), we will rewrite the file directly
-     * if we can.
+     * on typical modern file-system, this makes the update atomic. If the
+     * rename fails (ie, if the original is locked), we will rewrite the file
+     * directly if we can.
      *
      * @param file The file to write to.
      * @param map The map to encode.

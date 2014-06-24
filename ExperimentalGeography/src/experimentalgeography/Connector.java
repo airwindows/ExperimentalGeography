@@ -4,11 +4,9 @@
  */
 package experimentalgeography;
 
-import com.google.common.base.Preconditions;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.World;
-import org.bukkit.block.Block;
+import com.google.common.base.*;
+import org.bukkit.*;
+import org.bukkit.block.*;
 
 /**
  *

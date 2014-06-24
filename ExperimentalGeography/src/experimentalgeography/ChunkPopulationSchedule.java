@@ -21,28 +21,33 @@ import org.bukkit.scheduler.*;
  */
 public class ChunkPopulationSchedule {
 
+    private final long seed;
     private final Plugin plugin;
     private final File chunkScheduleFile;
     private final Map<ChunkPosition, OriginalChunkInfo> originalChunkInfos = Maps.newHashMap();
     private final Set<ChunkPosition> pendingChunks = Sets.newHashSet();
     private BukkitRunnable deferredSaver;
 
-    public ChunkPopulationSchedule(Plugin plugin) {
-        this(plugin, new File("experimentalgeography.txt"));
+    public ChunkPopulationSchedule(Plugin plugin, long seed) {
+        this(plugin, seed, new File("experimentalgeography.txt"));
     }
 
-    public ChunkPopulationSchedule(Plugin plugin, File chunkScheduleFile) {
+    public ChunkPopulationSchedule(Plugin plugin, long seed, File chunkScheduleFile) {
+        this.seed = seed;
         this.plugin = Preconditions.checkNotNull(plugin);
         this.chunkScheduleFile = Preconditions.checkNotNull(chunkScheduleFile);
 
         if (chunkScheduleFile.exists()) {
             MapFileMap map = MapFileMap.read(chunkScheduleFile);
+            long loadedSeed = map.getLong("seed");
 
-            for (OriginalChunkInfo info : map.getList("loadedChunks", OriginalChunkInfo.class)) {
-                originalChunkInfos.put(info.position, info);
+            if (loadedSeed == seed) {
+                for (OriginalChunkInfo info : map.getList("loadedChunks", OriginalChunkInfo.class)) {
+                    originalChunkInfos.put(info.position, info);
+                }
+
+                pendingChunks.addAll(map.getList("pendingChunks", ChunkPosition.class));
             }
-
-            pendingChunks.addAll(map.getList("pendingChunks", ChunkPosition.class));
         }
     }
 
@@ -52,6 +57,7 @@ public class ChunkPopulationSchedule {
      */
     public void save() {
         MapFileMap map = new MapFileMap();
+        map.put("seed", seed);
         map.put("loadedChunks", originalChunkInfos.values());
         map.put("pendingChunks", pendingChunks);
         MapFileMap.write(chunkScheduleFile, map);

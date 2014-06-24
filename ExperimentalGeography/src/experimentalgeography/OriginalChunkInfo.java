@@ -29,7 +29,7 @@ public final class OriginalChunkInfo implements MapFileMap.Storable {
 
         if (chunk.getWorld().getEnvironment() != World.Environment.NORMAL) {
             Random rnd = ExperimentalGeography.getChunkRandom(chunk.getWorld(), position);
-            int dummynodeY = rnd.nextInt(64);
+            rnd.nextInt(64);
             nodeY = rnd.nextInt(24) + 48;
         } else {
             nodeY = (int) (highestBlockY / 1.5) - 16;

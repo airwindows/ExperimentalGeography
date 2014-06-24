@@ -5,15 +5,11 @@
 package experimentalgeography;
 
 import java.util.*;
-import java.io.*;
-import com.google.common.collect.*;
 
 import org.bukkit.*;
-import org.bukkit.block.*;
 import org.bukkit.event.*;
 import org.bukkit.event.world.*;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.scheduler.BukkitRunnable;
 
 /**
  * This is the main plugin class for the plugin; it listens to events.
@@ -22,7 +18,15 @@ import org.bukkit.scheduler.BukkitRunnable;
  */
 public class ExperimentalGeography extends JavaPlugin implements Listener {
 
-    private final ChunkPopulationSchedule populationSchedule = new ChunkPopulationSchedule(this);
+    private ChunkPopulationSchedule lazyPopulationSchedule;
+
+    private ChunkPopulationSchedule getPopulationSchedule(long seed) {
+        if (lazyPopulationSchedule == null) {
+            lazyPopulationSchedule = new ChunkPopulationSchedule(this, seed);
+        }
+
+        return lazyPopulationSchedule;
+    }
 
     /**
      * This method is called once per chunk, when the chunk is first
@@ -31,8 +35,6 @@ public class ExperimentalGeography extends JavaPlugin implements Listener {
      * @param chunk The chunk to populate.
      */
     private void populateChunk(ChunkPosition where) {
-        OriginalChunkInfo info = populationSchedule.getOriginalChunkInfo(where);
-
         ChunkPosition[] adjacent = {
             new ChunkPosition(where.x - 1, where.z, where.worldName),
             new ChunkPosition(where.x + 1, where.z, where.worldName),
@@ -44,8 +46,9 @@ public class ExperimentalGeography extends JavaPlugin implements Listener {
         //third is Z offset increasing, fourth is inverse Z offset
         //combine to have 'density of nearby offset nodes at this chunk'
 
-        OriginalChunkInfo whereInfo = populationSchedule.getOriginalChunkInfo(where);
         World world = where.getWorld();
+        ChunkPopulationSchedule populationSchedule = getPopulationSchedule(world.getSeed());
+        OriginalChunkInfo whereInfo = populationSchedule.getOriginalChunkInfo(where);
 
         for (ChunkPosition dest : adjacent) {
             OriginalChunkInfo destInfo = populationSchedule.getOriginalChunkInfo(dest);
@@ -62,7 +65,7 @@ public class ExperimentalGeography extends JavaPlugin implements Listener {
 
     public static Location perturbNode(World world, ChunkPosition where, int y) {
         Random whereRandomOffset = getChunkRandom(world, where);
-        int dummyOffset = whereRandomOffset.nextInt(16);
+        whereRandomOffset.nextInt(16);
         int whereOffsetX = whereRandomOffset.nextInt(16);
         int whereOffsetZ = whereRandomOffset.nextInt(16);
         return new Location(world, where.x * 16 + whereOffsetX, y, where.z * 16 + whereOffsetZ);
@@ -89,12 +92,17 @@ public class ExperimentalGeography extends JavaPlugin implements Listener {
     @Override
     public void onDisable() {
         super.onDisable();
-        populationSchedule.save();
+
+        if (lazyPopulationSchedule != null) {
+            lazyPopulationSchedule.save();
+        }
     }
 
     @EventHandler
     public void onChunkLoad(ChunkLoadEvent e) {
         if (e.isNewChunk()) {
+            World world = e.getWorld();
+            ChunkPopulationSchedule populationSchedule = getPopulationSchedule(world.getSeed());
             populationSchedule.schedule(e.getChunk());
 
             for (ChunkPosition next : populationSchedule.next()) {

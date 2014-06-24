@@ -52,12 +52,11 @@ public class ExperimentalGeography extends JavaPlugin implements Listener {
             int whereY = whereInfo.nodeY;
             int destY = destInfo.nodeY;
 
+            Connector connector = new Connector(where);
+
             Location start = perturbNode(world, where, whereY);
             Location end = perturbNode(world, dest, destY);
-            linkBlocks(where, start, end, Material.SMOOTH_BRICK);
-            start.add(0, 2, 0);
-            end.add(0, 2, 0);
-            linkBlocks(where, start, end, Material.AIR);
+            connector.connect(start, end);
         }
     }
 
@@ -79,72 +78,6 @@ public class ExperimentalGeography extends JavaPlugin implements Listener {
             seedz = 64;
         }
         return new Random((seedx * seedz) + world.getSeed());
-    }
-
-    /**
-     * This is a line drawing function in minecraft blocks; it's kinda lame but
-     * it does okay. It draws a line in three-space between two points, but only
-     * touches the blocks of the chunk specified. This is needed because if we
-     * touch a chunk not loaded, it will be loaded, and this leads to infinite
-     * regress.
-     *
-     * @param target The chunk we are generating. We change only its blocks.
-     * @param start The start point of the line.
-     * @param end The end point of the line.
-     */
-    private void linkBlocks(ChunkPosition target, Location start, Location end, Material material) {
-        double dist = start.distance(end);
-        int size = (int) (Math.cbrt(Math.max(0, 32 - dist)) * 2.1);
-        if (size == 1) {
-            size = 0;
-        }
-        if (dist > 0.0) {
-            World world = start.getWorld();
-
-            for (double i = dist; i >= 0; --i) {
-                double s = i / dist;
-                double e = 1.0 - s;
-
-                for (int dx = 0; dx < size; ++dx) {
-                    for (int dy = 0; dy < size; ++dy) {
-                        for (int dz = 0; dz < size; ++dz) {
-                            int x = (int) (start.getX() * s + end.getX() * e) + dx - (size / 2);
-                            int y = (int) (start.getY() * s + end.getY() * e) + dy;
-                            int z = (int) (start.getZ() * s + end.getZ() * e) + dz - (size / 2);
-                            if (target.contains(x, z)) {
-                                Block block = world.getBlockAt(x, y, z);
-                                if (block.getType() != Material.DIAMOND_ORE) {
-                                    block.setType(material);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            //here we tack on the glowstone ceiling lights, and/or call the spawner/loot math
-            int x = (int) start.getX();
-            int y = (int) start.getY();
-            int z = (int) start.getZ();
-
-
-            //we'll be passing in variations on this by biome
-            int darkness = 64;
-            //distance between nodes has to be smaller than this to place a light
-            //if it's a big distance it will be darker: large caves get lit
-            //16 is fairly dark, 32 still has some darkness
-
-            if (material == Material.AIR && dist < darkness) {
-                if (target.contains(x, z)) {
-                    for (; y < 255; ++y) {
-                        Block block = world.getBlockAt(x, y, z);
-                        if (block.getType() != Material.AIR) {
-                            block.setType(Material.GLOWSTONE);
-                            break;
-                        }
-                    }
-                }
-            }
-        }
     }
 
     @Override

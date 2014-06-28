@@ -39,23 +39,12 @@ public class Connector {
         if (dist > 0.0) {
             int size = (int) (Math.cbrt(Math.max(0, 32 - dist)) * 2.1);
 
-            if (size == 1) {
-                size = 0;
+            if (size > 1) {
+                Space space = Space.linear(start, end, size, size + 1).within(target);
+
+                space.fillWithFloor(Material.AIR, Material.SMOOTH_BRICK, Material.DIAMOND_ORE);
+                decorate(start, end, dist);
             }
-
-            Space space = Space.linear(start, end, size).within(target);
-
-            connectCore(space, Material.SMOOTH_BRICK);
-            connectCore(space.offset(0, 2, 0), Material.AIR);
-            decorate(start, end, dist);
-        }
-    }
-
-    private void connectCore(Space space, Material material) {
-        if (material == Material.AIR) {
-            space.fill(material, Material.DIAMOND_ORE);
-        } else {
-            space.fill(material);
         }
     }
 

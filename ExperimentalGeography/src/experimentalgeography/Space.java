@@ -20,8 +20,8 @@ public abstract class Space {
         return EmptySpace.INSTANCE;
     }
 
-    public static Space linear(Location start, Location end, int size) {
-        return new LinearSpace(start, end, size);
+    public static Space linear(Location start, Location end, int width, int height) {
+        return new LinearSpace(start, end, width, height);
     }
 
     public Space within(ChunkPosition chunk) {
@@ -66,10 +66,6 @@ public abstract class Space {
     ////////////////////////////////
     // Block Changes
     //
-    public final void fill(Material material) {
-        fill(material, Collections.<Material>emptySet());
-    }
-
     public final void fill(final Material material, Material... toSpare) {
         fill(material, Arrays.asList(toSpare));
     }
@@ -82,6 +78,27 @@ public abstract class Space {
 
                 if (!toSpare.contains(block.getType())) {
                     block.setType(material);
+                }
+            }
+        });
+    }
+
+    public final void fillWithFloor(final Material air, final Material floor, final Material... toSpare) {
+        fillWithFloor(air, floor, Arrays.asList(toSpare));
+    }
+
+    public final void fillWithFloor(final Material air, final Material floor, final Collection<Material> toSpare) {
+        forEachBlock(new BlockAction() {
+            @Override
+            public void apply(int x, int y, int z, World world) {
+                Block block = world.getBlockAt(x, y, z);
+
+                if (!toSpare.contains(block.getType())) {
+                    if (contains(x, y - 1, z, world)) {
+                        block.setType(air);
+                    } else {
+                        block.setType(floor);
+                    }
                 }
             }
         });
@@ -138,12 +155,13 @@ public abstract class Space {
     private static final class LinearSpace extends Space {
 
         private final Location start, end;
-        private final int size;
+        private final int width, height;
 
-        public LinearSpace(Location start, Location end, int size) {
+        public LinearSpace(Location start, Location end, int width, int height) {
             this.start = start;
             this.end = end;
-            this.size = size;
+            this.width = width;
+            this.height = height;
         }
 
         @Override
@@ -151,7 +169,7 @@ public abstract class Space {
             return new LinearSpace(
                     start.clone().add(dx, dy, dz),
                     end.clone().add(dz, dy, dz),
-                    size);
+                    width, height);
         }
 
         @Override
@@ -167,12 +185,12 @@ public abstract class Space {
                 int y = (int) (start.getY() * s + end.getY() * e);
                 int z = (int) (start.getZ() * s + end.getZ() * e);
 
-                for (int dx = 0; dx < size; ++dx) {
-                    for (int dy = 0; dy < size; ++dy) {
-                        for (int dz = 0; dz < size; ++dz) {
-                            int bx = x + dx - (size / 2);
+                for (int dx = 0; dx < width; ++dx) {
+                    for (int dy = 0; dy < height; ++dy) {
+                        for (int dz = 0; dz < width; ++dz) {
+                            int bx = x + dx - (width / 2);
                             int by = y + dy;
-                            int bz = z + dz - (size / 2);
+                            int bz = z + dz - (width / 2);
 
                             action.apply(bx, by, bz, world);
                         }

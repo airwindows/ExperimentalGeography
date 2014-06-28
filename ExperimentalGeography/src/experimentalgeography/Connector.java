@@ -37,21 +37,21 @@ public class Connector {
         double dist = start.distance(end);
 
         if (dist > 0.0) {
-            connectCore(start, end, dist, Material.SMOOTH_BRICK);
-            connectCore(start.clone().add(0, 2, 0), end.clone().add(0, 2, 0), dist, Material.AIR);
+            int size = (int) (Math.cbrt(Math.max(0, 32 - dist)) * 2.1);
+
+            if (size == 1) {
+                size = 0;
+            }
+
+            Space space = Space.linear(start, end, size).within(target);
+
+            connectCore(space, Material.SMOOTH_BRICK);
+            connectCore(space.offset(0, 2, 0), Material.AIR);
             decorate(start, end, dist);
         }
     }
 
-    private void connectCore(Location start, Location end, double dist, Material material) {
-        int size = (int) (Math.cbrt(Math.max(0, 32 - dist)) * 2.1);
-
-        if (size == 1) {
-            size = 0;
-        }
-
-        Space space = Space.linear(start, end, size).within(target);
-
+    private void connectCore(Space space, Material material) {
         if (material == Material.AIR) {
             space.fill(material, Material.DIAMOND_ORE);
         } else {

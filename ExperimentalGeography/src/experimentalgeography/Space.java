@@ -17,23 +17,28 @@ import org.bukkit.block.*;
  */
 public abstract class Space {
 
+    public static Space empty() {
+        return EmptySpace.INSTANCE;
+    }
+
     public static Space linear(Location start, Location end, int size) {
         return new LinearSpace(start, end, size);
     }
 
-    public Space within(final ChunkPosition chunk) {
+    public Space within(ChunkPosition chunk) {
+        return new ChunkLimitedSpace(this, chunk);
+    }
+
+    public Space offset(final int dx, final int dy, final int dz) {
         final Space innerSpace = this;
-        final World chunkWorld = chunk.getWorld();
 
         return new Space() {
             @Override
             public void forEachBlock(final BlockAction action) {
                 innerSpace.forEachBlock(new BlockAction() {
                     @Override
-                    public void appy(int x, int y, int z, World world) {
-                        if (chunk.contains(x, z) && chunkWorld == world) {
-                            action.appy(x, y, z, world);
-                        }
+                    public void apply(int x, int y, int z, World world) {
+                        action.apply(x + dx, y + dy, z + dz, world);
                     }
                 });
             }
@@ -51,7 +56,7 @@ public abstract class Space {
     public final void fill(final Material material, final Collection<Material> toSpare) {
         forEachBlock(new BlockAction() {
             @Override
-            public void appy(int x, int y, int z, World world) {
+            public void apply(int x, int y, int z, World world) {
                 Block block = world.getBlockAt(x, y, z);
 
                 if (!toSpare.contains(block.getType())) {
@@ -70,7 +75,7 @@ public abstract class Space {
     public final void addBlocksTo(final Collection<Block> action) {
         forEachBlock(new BlockAction() {
             @Override
-            public void appy(int x, int y, int z, World world) {
+            public void apply(int x, int y, int z, World world) {
                 Block block = world.getBlockAt(x, y, z);
                 action.add(block);
             }
@@ -79,15 +84,43 @@ public abstract class Space {
 
     public abstract void forEachBlock(BlockAction action);
 
+    private static final class EmptySpace extends Space {
+
+        public static final EmptySpace INSTANCE = new EmptySpace();
+
+        @Override
+        public Space within(ChunkPosition chunk) {
+            return this;
+        }
+
+        @Override
+        public Space offset(int dx, int dy, int dz) {
+            return this;
+        }
+
+        @Override
+        public void forEachBlock(BlockAction action) {
+            // an empty space has no blocks!
+        }
+    }
+
     private static final class LinearSpace extends Space {
 
         private final Location start, end;
         private final int size;
 
         public LinearSpace(Location start, Location end, int size) {
-            this.start = start.clone();
-            this.end = end.clone();
+            this.start = start;
+            this.end = end;
             this.size = size;
+        }
+
+        @Override
+        public Space offset(int dx, int dy, int dz) {
+            return new LinearSpace(
+                    start.clone().add(dx, dy, dz),
+                    end.clone().add(dz, dy, dz),
+                    size);
         }
 
         @Override
@@ -110,14 +143,57 @@ public abstract class Space {
                             int by = y + dy;
                             int bz = z + dz - (size / 2);
 
-                            action.appy(bx, by, bz, world);
+                            action.apply(bx, by, bz, world);
                         }
                     }
                 }
             }
         }
     }
-    public static final Comparator<Block> BLOCK_COMPARATOR = new Comparator<Block>() {
+
+    private static final class ChunkLimitedSpace extends Space {
+
+        private final Space inner;
+        private final ChunkPosition chunk;
+
+        public ChunkLimitedSpace(Space inner, ChunkPosition chunk) {
+            this.inner = inner;
+            this.chunk = chunk;
+        }
+
+        @Override
+        public Space within(ChunkPosition chunk) {
+            if (this.chunk.equals(chunk)) {
+                return this;
+            } else {
+                return empty();
+            }
+        }
+
+        @Override
+        public Space offset(int dx, int dy, int dz) {
+            if (dx == 0 && dz == 0) {
+                return new ChunkLimitedSpace(inner.offset(dx, dy, dz), chunk);
+            } else {
+                return super.offset(dx, dy, dz);
+            }
+        }
+
+        @Override
+        public void forEachBlock(final BlockAction action) {
+            final World chunkWorld = chunk.getWorld();
+
+            inner.forEachBlock(new BlockAction() {
+                @Override
+                public void apply(int x, int y, int z, World world) {
+                    if (chunk.contains(x, z) && chunkWorld == world) {
+                        action.apply(x, y, z, world);
+                    }
+                }
+            });
+        }
+    }
+    private static final Comparator<Block> BLOCK_COMPARATOR = new Comparator<Block>() {
         @Override
         public int compare(Block left, Block right) {
             if (left == right) {
@@ -144,6 +220,6 @@ public abstract class Space {
 
     public interface BlockAction {
 
-        void appy(int x, int y, int z, World world);
+        void apply(int x, int y, int z, World world);
     }
 }

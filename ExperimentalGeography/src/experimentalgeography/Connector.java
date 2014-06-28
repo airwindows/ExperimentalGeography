@@ -50,15 +50,12 @@ public class Connector {
             size = 0;
         }
 
-        for (double i = dist; i >= 0; --i) {
-            double s = i / dist;
-            double e = 1.0 - s;
+        Space space = Space.linear(start, end, size).within(target);
 
-            int bx = (int) (start.getX() * s + end.getX() * e);
-            int by = (int) (start.getY() * s + end.getY() * e);
-            int bz = (int) (start.getZ() * s + end.getZ() * e);
-
-            replaceCubeAt(bx, by, bz, size, material);
+        if (material == Material.AIR) {
+            space.fill(material, Material.DIAMOND_ORE);
+        } else {
+            space.fill(material);
         }
     }
 
@@ -84,38 +81,6 @@ public class Connector {
                     }
                 }
             }
-        }
-    }
-
-    protected final void replaceCubeAt(int x, int y, int z, int size, Material replacement) {
-        for (int dx = 0; dx < size; ++dx) {
-            for (int dy = 0; dy < size; ++dy) {
-                for (int dz = 0; dz < size; ++dz) {
-                    int bx = x + dx - (size / 2);
-                    int by = y + dy;
-                    int bz = z + dz - (size / 2);
-
-                    replaceBlockAt(bx, by, bz, replacement);
-                }
-            }
-        }
-    }
-
-    protected final void replaceBlockAt(int x, int y, int z, Material replacement) {
-        if (target.contains(x, z)) {
-            Block block = world.getBlockAt(x, y, z);
-
-            if (canReplaceBlock(block, replacement)) {
-                block.setType(replacement);
-            }
-        }
-    }
-
-    protected boolean canReplaceBlock(Block block, Material replacement) {
-        if (replacement == Material.AIR) {
-            return block.getType() != Material.DIAMOND_ORE;
-        } else {
-            return true;
         }
     }
 }

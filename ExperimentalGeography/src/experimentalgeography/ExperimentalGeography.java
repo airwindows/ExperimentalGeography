@@ -35,6 +35,9 @@ public class ExperimentalGeography extends JavaPlugin implements Listener {
      * @param chunk The chunk to populate.
      */
     private void populateChunk(ChunkPosition where) {
+        World world = where.getWorld();
+        ChunkPopulationSchedule populationSchedule = getPopulationSchedule(world.getSeed());
+
         ChunkPosition[] adjacent = {
             new ChunkPosition(where.x - 1, where.z, where.worldName),
             new ChunkPosition(where.x + 1, where.z, where.worldName),
@@ -46,21 +49,21 @@ public class ExperimentalGeography extends JavaPlugin implements Listener {
         //third is Z offset increasing, fourth is inverse Z offset
         //combine to have 'density of nearby offset nodes at this chunk'
 
-        World world = where.getWorld();
-        ChunkPopulationSchedule populationSchedule = getPopulationSchedule(world.getSeed());
         OriginalChunkInfo whereInfo = populationSchedule.getOriginalChunkInfo(where);
+        Location start = perturbNode(world, where, whereInfo.nodeY);
 
-        for (ChunkPosition dest : adjacent) {
+        Location[] ends = new Location[adjacent.length];
+
+        for (int i = 0; i < ends.length; ++i) {
+            ChunkPosition dest = adjacent[i];
             OriginalChunkInfo destInfo = populationSchedule.getOriginalChunkInfo(dest);
-            int whereY = whereInfo.nodeY;
             int destY = destInfo.nodeY;
 
-            Connector connector = new Connector(where);
-
-            Location start = perturbNode(world, where, whereY);
-            Location end = perturbNode(world, dest, destY);
-            connector.connect(start, end);
+            ends[i] = perturbNode(world, dest, destY);
         }
+
+        Connector connector = new Connector(where);
+        connector.connect(start, ends);
     }
 
     public static Location perturbNode(World world, ChunkPosition where, int y) {

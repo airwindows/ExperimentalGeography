@@ -33,27 +33,39 @@ public class Connector {
      * @param start The start point of the line.
      * @param end The end point of the line.
      */
-    public void connect(Location start, Location end) {
-        double dist = start.distance(end);
+    public void connect(Location start, Location[] ends) {
+        Space space = Space.empty();
 
-        if (dist > 0.0) {
-            int size = (int) (Math.cbrt(Math.max(0, 32 - dist)) * 2.1);
+        for (Location end : ends) {
+            double dist = start.distance(end);
 
-            if (size > 1) {
-                Space space = Space.linear(start, end, size, size + 1).within(target);
+            if (dist > 0.0) {
+                int size = (int) (Math.cbrt(Math.max(0, 32 - dist)) * 2.1);
 
-                space.fillWithFloor(Material.AIR, Material.SMOOTH_BRICK, Material.DIAMOND_ORE);
-                decorate(start, end, dist);
+                if (size > 1) {
+                    space = space.union(Space.linear(start, end, size, size + 1));
+                }
             }
         }
+
+        space.within(target).
+                fillWithFloor(Material.AIR, Material.SMOOTH_BRICK, Material.DIAMOND_ORE);
+
+        decorate(start, ends);
     }
 
-    protected void decorate(Location start, Location end, double dist) {
+    protected void decorate(Location start, Location[] ends) {
         //we'll be passing in variations on this by biome
         final int darkness = 64;
         //distance between nodes has to be smaller than this to place a light
         //if it's a big distance it will be darker: large caves get lit
         //16 is fairly dark, 32 still has some darkness
+
+        double dist = 0.0;
+
+        for (Location end : ends) {
+            dist = Math.max(dist, start.distance(end));
+        }
 
         if (dist < darkness) {
             //here we tack on the glowstone ceiling lights, and/or call the spawner/loot math

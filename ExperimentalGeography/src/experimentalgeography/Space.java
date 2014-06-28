@@ -21,7 +21,16 @@ public abstract class Space {
     }
 
     public static Space linear(Location start, Location end, int width, int height) {
-        return new LinearSpace(start, end, width, height);
+        return new LinearSpace(start.clone(), end.clone(), width, height);
+    }
+
+    public Space union(Space other) {
+        if (other == this || other instanceof EmptySpace) {
+            return this;
+        }
+
+        Space[] components = {this, other};
+        return new UnionedSpace(components);
     }
 
     public Space within(ChunkPosition chunk) {
@@ -130,6 +139,11 @@ public abstract class Space {
     private static final class EmptySpace extends Space {
 
         public static final EmptySpace INSTANCE = new EmptySpace();
+
+        @Override
+        public Space union(Space other) {
+            return other;
+        }
 
         @Override
         public Space within(ChunkPosition chunk) {
@@ -247,6 +261,57 @@ public abstract class Space {
                     }
                 }
             });
+        }
+    }
+
+    private static class UnionedSpace extends Space {
+
+        private Space[] components;
+
+        public UnionedSpace(Space[] components) {
+            this.components = components;
+        }
+
+        @Override
+        public Space union(Space other) {
+            List<Space> combined = Lists.newArrayList();
+            Collections.addAll(combined, components);
+            if (other instanceof UnionedSpace) {
+                Collections.addAll(combined, ((UnionedSpace) other).components);
+            } else {
+                combined.add(other);
+            }
+
+            return new UnionedSpace(combined.toArray(new Space[combined.size()]));
+        }
+
+        @Override
+        public Space within(ChunkPosition chunk) {
+            Space[] limited = new Space[components.length];
+
+            for (int i = 0; i < limited.length; ++i) {
+                limited[i] = components[i].within(chunk);
+            }
+
+            return new UnionedSpace(limited);
+        }
+
+        @Override
+        public boolean contains(int x, int y, int z, World world) {
+            for (Space s : components) {
+                if (s.contains(x, y, z, world)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        @Override
+        public void forEachBlock(BlockAction action) {
+            for (Space s : components) {
+                s.forEachBlock(action);
+            }
         }
     }
     ////////////////////////////////

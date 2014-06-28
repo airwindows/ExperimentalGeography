@@ -14,32 +14,94 @@ import org.bukkit.block.*;
  * Space represents some finite set of blocks that can be manipulated; you can
  * convert a space into a set of Block objects.
  *
+ * Spaces are defined procedurally, by overriding the forEachBlock method,
+ *
  * @author DanJ
  */
 public abstract class Space {
 
+    /**
+     * Returns a space that contains no blocks at all.
+     *
+     * @return The empty space singleton.
+     */
     public static Space empty() {
         return EmptySpace.INSTANCE;
     }
 
+    /**
+     * Returns a space that includes blocks running from 'start' to 'end', which
+     * is as tall and wide as specified.
+     *
+     * @param start The starting point of the line.
+     * @param end The ending point of the line.
+     * @param width The width, in blocks, of the line.
+     * @param height The height, in blocks, of the line.
+     * @return The space defined by this line.
+     */
     public static Space linear(Location start, Location end, int width, int height) {
         return new LinearSpace(start.clone(), end.clone(), width, height);
     }
 
+    /**
+     * Returns an new space including all blocks in this space as well as any
+     * blocks in 'other'.
+     *
+     * @param other The space to combine with this one.
+     * @return The space including all the blocks.
+     */
     public Space union(Space other) {
         if (other == this || other instanceof EmptySpace) {
             return this;
         }
 
-        Space[] components = {this, other};
-        return new UnionedSpace(components);
+        return new UnionedSpace(this, other);
     }
 
-    public Space within(Chunk chunk) {
-        return new ChunkLimitedSpace(this, ChunkPosition.of(chunk), chunk.getWorld());
+    /**
+     * Returns a space including all the blocks of this space that are inside
+     * the chunk indicated, but no others.
+     *
+     * @param chunk The chunk that the new space is limited to.
+     * @return The new space that is limited to the chunk.
+     */
+    public final Space withinChunk(Chunk chunk) {
+        int minX = chunk.getX() * 16;
+        int minZ = chunk.getZ() * 16;
+        int maxX = minX + 15;
+        int maxZ = minZ + 15;
+
+        return within(minX, minZ, maxX, maxZ, chunk.getWorld());
     }
 
+    /**
+     * Returns a space including all the blocks of this space that in side the
+     * co-ordinates indicated by the parameter, and are in the specified world.
+     *
+     * @param minX The minimum x coordinate allowed.
+     * @param maxX The maximum x coordinate allowed.
+     * @param minZ The minimum z coordinate allowed.
+     * @param maxZ The maximum z coordinate allowed.
+     * @param world The world whose blocks are accepted.
+     * @return A new space adjusted to contain only the blocks indicated.
+     */
+    public Space within(int minX, int maxX, int minZ, int maxZ, World world) {
+        return new LimitedSpace(this, minX, maxX, minZ, maxZ, world);
+    }
+
+    /**
+     * Returns a space that is the same as this one, but shifted through space.
+     *
+     * @param dx The delta to apply in the x direction.
+     * @param dy The delta to apply in the y direction.
+     * @param dz The delta to apply in the z direction.
+     * @return The new, adjusted space.
+     */
     public Space offset(final int dx, final int dy, final int dz) {
+        if (dz == 0 && dy == 0 && dz == 0) {
+            return this;
+        }
+
         final Space innerSpace = this;
 
         return new Space() {
@@ -59,100 +121,90 @@ public abstract class Space {
     //
     private Set<Block> lazyBlocks;
 
+    /**
+     * Returns an immutable set of all the blocks in the space. This set is
+     * cached for performance, since this is used to implement contains() by
+     * default.
+     *
+     * Unlike forEachBlock(), this method does not return duplicate blocks.
+     *
+     * @return
+     */
     public final Set<Block> getBlocks() {
         if (lazyBlocks == null) {
-            Set<Block> blocks = Sets.newTreeSet(BLOCK_COMPARATOR);
-            addBlocksTo(blocks);
+            BlockCollectorSet blocks = new BlockCollectorSet();
+            forEachBlock(blocks);
             lazyBlocks = Collections.unmodifiableSet(blocks);
         }
 
         return lazyBlocks;
     }
 
+    /**
+     * Returns true if the indicated block is included in this space. By default
+     * this is implemented by getBlocks(), and it should always agree with that
+     * method's set.
+     *
+     * @param x The x coordinate of the block to test.
+     * @param y The y coordinate of the block to test.
+     * @param z The z coordinate of the block to test.
+     * @param world The world containing the block to test.
+     * @return True if the block is inside the space.
+     */
     public boolean contains(int x, int y, int z, World world) {
         Block block = world.getBlockAt(x, y, z);
         return getBlocks().contains(block);
     }
 
     ////////////////////////////////
-    // Block Changes
-    //
-    public final void fill(final Material material, Material... toSpare) {
-        fill(material, Arrays.asList(toSpare));
-    }
-
-    public final void fill(final Material material, final Collection<Material> toSpare) {
-        forEachBlock(new BlockAction() {
-            @Override
-            public void apply(int x, int y, int z, World world) {
-                Block block = world.getBlockAt(x, y, z);
-
-                if (!toSpare.contains(block.getType())) {
-                    block.setType(material);
-                }
-            }
-        });
-    }
-
-    public final void fillWithFloor(Chunk target, Material air, Material floor, Material... toSpare) {
-        fillWithFloor(target, air, floor, Arrays.asList(toSpare));
-    }
-
-    public final void fillWithFloor(Chunk target, final Material air, final Material floor, final Collection<Material> toSpare) {
-        Space inTarget = within(target);
-
-        for (Block block : inTarget.getBlocks()) {
-            if (!toSpare.contains(block.getType())) {
-                if (isFloorBlock(block.getX(), block.getY() - 1, block.getZ(), block.getWorld())) {
-                    block.setType(floor);
-                } else {
-                    block.setType(air);
-                }
-            }
-        }
-    }
-
-    private boolean isFloorBlock(int x, int y, int z, World world) {
-        if (!contains(x, y - 1, z, world)) {
-            return true;
-        }
-        
-        if (contains(x, y - 2, z, world)) {
-            return false;
-        }
-        
-        boolean interior =
-                contains(x + 1, y, z, world)
-                && contains(x - 1, y, z, world)
-                && contains(x, y, z + 1, world)
-                && contains(x, y, z - 1, world);
-
-        return !interior;
-    }
-
-    ////////////////////////////////
     // Block Enumeration
     //
+    /**
+     * Gives you each block in this space in turn, by calling action.apply() for
+     * each one.
+     *
+     * This is the most primitive method, which each Space subclass must
+     * provide. This method may provide blocks in any order, and it can supply
+     * the same block more than once; use getBlocks() to get a de-duplicated set
+     * instead.
+     *
+     * @param action The apply method of this object is called for each block
+     * (maybe more than once!)
+     */
+    public abstract void forEachBlock(BlockAction action);
+
+    /**
+     * This interface is for objects that receive the blocks from
+     * forEachBlock(); by taking the co-ordinates as separate parameters, we can
+     * often avoid allocating a Block object.
+     */
     public interface BlockAction {
 
         void apply(int x, int y, int z, World world);
     }
 
-    public final void addBlocksTo(final Collection<Block> action) {
-        forEachBlock(new BlockAction() {
-            @Override
-            public void apply(int x, int y, int z, World world) {
-                Block block = world.getBlockAt(x, y, z);
-                action.add(block);
-            }
-        });
-    }
+    /**
+     * This class is a TreeSet that collects blocks from forEachBlock(),
+     * de-duping as it goes.
+     */
+    private static final class BlockCollectorSet extends TreeSet<Block> implements BlockAction {
 
-    public abstract void forEachBlock(BlockAction action);
+        public BlockCollectorSet() {
+            super(BLOCK_COMPARATOR);
+        }
+
+        @Override
+        public void apply(int x, int y, int z, World world) {
+            add(world.getBlockAt(x, y, z));
+        }
+    }
 
     ////////////////////////////////
     // Block Subclasses
     //
+    /**
+     * This class is a space with no blocks in it.
+     */
     private static final class EmptySpace extends Space {
 
         public static final EmptySpace INSTANCE = new EmptySpace();
@@ -163,7 +215,7 @@ public abstract class Space {
         }
 
         @Override
-        public Space within(Chunk chunk) {
+        public Space within(int minX, int maxX, int minZ, int maxZ, World world) {
             return this;
         }
 
@@ -183,6 +235,10 @@ public abstract class Space {
         }
     }
 
+    /**
+     * This class represents a space defined by a line from a start to an end.
+     * This is used to implement linear().
+     */
     private static final class LinearSpace extends Space {
 
         private final Location start, end;
@@ -231,24 +287,40 @@ public abstract class Space {
         }
     }
 
-    private static final class ChunkLimitedSpace extends Space {
+    /**
+     * This class wraps another space, and blocks any blocks from the wrong
+     * chunk (as it were). Used to implement withinChunk().
+     */
+    private static final class LimitedSpace extends Space {
 
         private final Space inner;
-        private final ChunkPosition chunkPosition;
-        private final World chunkWorld;
+        private final int minX, maxX, minZ, maxZ;
+        private final World world;
 
-        public ChunkLimitedSpace(Space inner, ChunkPosition chunkPosition, World world) {
+        public LimitedSpace(Space inner, int minX, int maxX, int minZ, int maxZ, World world) {
             this.inner = inner;
-            this.chunkPosition = chunkPosition;
-            this.chunkWorld = world;
+            this.minX = minX;
+            this.maxX = maxX;
+            this.minZ = minZ;
+            this.maxZ = maxZ;
+            this.world = world;
+        }
+
+        private boolean isInLimit(int x, int z, World checkWorld) {
+            return x >= minX && x <= maxX
+                    && z >= minZ && z <= maxZ
+                    && checkWorld == world;
         }
 
         @Override
-        public Space within(Chunk chunk) {
-            if (chunk.getX() == chunkPosition.x
-                    && chunk.getZ() == chunkPosition.z
-                    && chunk.getWorld().getName().equals(chunkPosition.worldName)) {
-                return this;
+        public Space within(int minX, int maxX, int minZ, int maxZ, World world) {
+            if (this.world == world) {
+                return new LimitedSpace(inner,
+                        Math.max(this.minX, minX),
+                        Math.min(this.maxX, maxX),
+                        Math.max(this.minZ, minZ),
+                        Math.min(this.maxZ, maxZ),
+                        world);
             } else {
                 return empty();
             }
@@ -256,18 +328,16 @@ public abstract class Space {
 
         @Override
         public Space offset(int dx, int dy, int dz) {
-            if (dx == 0 && dz == 0) {
-                return new ChunkLimitedSpace(inner.offset(dx, dy, dz), chunkPosition, chunkWorld);
-            } else {
-                return super.offset(dx, dy, dz);
-            }
+            return new LimitedSpace(
+                    inner.offset(dx, dy, dz),
+                    minX + dx, maxX + dx,
+                    minZ + dz, maxZ + dz,
+                    world);
         }
 
         @Override
         public boolean contains(int x, int y, int z, World world) {
-            return chunkPosition.contains(x, z)
-                    && chunkWorld == world
-                    && inner.contains(x, y, z, world);
+            return isInLimit(x, z, world) && inner.contains(x, y, z, world);
         }
 
         @Override
@@ -275,7 +345,7 @@ public abstract class Space {
             inner.forEachBlock(new BlockAction() {
                 @Override
                 public void apply(int x, int y, int z, World world) {
-                    if (chunkPosition.contains(x, z) && chunkWorld == world) {
+                    if (isInLimit(x, z, world)) {
                         action.apply(x, y, z, world);
                     }
                 }
@@ -283,11 +353,15 @@ public abstract class Space {
         }
     }
 
+    /**
+     * This class contains a list of component spaces, and provides every block
+     * for the lot of them.
+     */
     private static class UnionedSpace extends Space {
 
-        private Space[] components;
+        private final Space[] components;
 
-        public UnionedSpace(Space[] components) {
+        public UnionedSpace(Space... components) {
             this.components = components;
         }
 
@@ -305,11 +379,11 @@ public abstract class Space {
         }
 
         @Override
-        public Space within(Chunk chunk) {
+        public Space within(int minX, int maxX, int minZ, int maxZ, World world) {
             Space[] limited = new Space[components.length];
 
             for (int i = 0; i < limited.length; ++i) {
-                limited[i] = components[i].within(chunk);
+                limited[i] = components[i].within(minX, maxX, minZ, maxZ, world);
             }
 
             return new UnionedSpace(limited);
@@ -333,9 +407,9 @@ public abstract class Space {
             }
         }
     }
-////////////////////////////////
-// Block Comparison
-//
+    ////////////////////////////////
+    // Block Comparison
+    //
     private static final Comparator<Block> BLOCK_COMPARATOR = new Comparator<Block>() {
         @Override
         public int compare(Block left, Block right) {

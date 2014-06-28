@@ -62,8 +62,9 @@ public class ExperimentalGeography extends JavaPlugin implements Listener {
             ends[i] = perturbNode(world, dest, destY);
         }
 
-        Connector connector = new Connector(where.getChunk());
-        connector.connect(start, ends);
+        Connector connector = new Connector(where.getChunk(), start, ends);
+        connector.connect();
+        connector.decorate();
     }
 
     public static Location perturbNode(World world, ChunkPosition where, int y) {

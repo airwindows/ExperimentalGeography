@@ -14,10 +14,10 @@ import org.bukkit.block.*;
  */
 public class Connector {
 
-    private final ChunkPosition target;
+    private final Chunk target;
     private final World world;
 
-    public Connector(ChunkPosition target) {
+    public Connector(Chunk target) {
         this.target = Preconditions.checkNotNull(target);
         this.world = target.getWorld();
     }
@@ -48,8 +48,7 @@ public class Connector {
             }
         }
 
-        space.within(target).
-                fillWithFloor(Material.AIR, Material.SMOOTH_BRICK, Material.DIAMOND_ORE);
+        space.fillWithFloor(target, Material.AIR, Material.SMOOTH_BRICK, Material.DIAMOND_ORE);
 
         decorate(start, ends);
     }
@@ -73,7 +72,7 @@ public class Connector {
             int y = (int) start.getY();
             int z = (int) start.getZ();
 
-            if (target.contains(x, z)) {
+            if (ChunkPosition.of(target).contains(x, z)) {
                 for (; y < 255; ++y) {
                     Block block = world.getBlockAt(x, y, z);
                     if (block.getType() != Material.AIR) {

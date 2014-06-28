@@ -11,6 +11,8 @@ import org.bukkit.*;
 import org.bukkit.block.*;
 
 /**
+ * Space represents some finite set of blocks that can be manipulated; you can
+ * convert a space into a set of Block objects.
  *
  * @author DanJ
  */
@@ -33,8 +35,8 @@ public abstract class Space {
         return new UnionedSpace(components);
     }
 
-    public Space within(ChunkPosition chunk) {
-        return new ChunkLimitedSpace(this, chunk);
+    public Space within(Chunk chunk) {
+        return new ChunkLimitedSpace(this, ChunkPosition.of(chunk), chunk.getWorld());
     }
 
     public Space offset(final int dx, final int dy, final int dz) {
@@ -92,25 +94,40 @@ public abstract class Space {
         });
     }
 
-    public final void fillWithFloor(final Material air, final Material floor, final Material... toSpare) {
-        fillWithFloor(air, floor, Arrays.asList(toSpare));
+    public final void fillWithFloor(Chunk target, Material air, Material floor, Material... toSpare) {
+        fillWithFloor(target, air, floor, Arrays.asList(toSpare));
     }
 
-    public final void fillWithFloor(final Material air, final Material floor, final Collection<Material> toSpare) {
-        forEachBlock(new BlockAction() {
-            @Override
-            public void apply(int x, int y, int z, World world) {
-                Block block = world.getBlockAt(x, y, z);
+    public final void fillWithFloor(Chunk target, final Material air, final Material floor, final Collection<Material> toSpare) {
+        Space inTarget = within(target);
 
-                if (!toSpare.contains(block.getType())) {
-                    if (contains(x, y - 1, z, world)) {
-                        block.setType(air);
-                    } else {
-                        block.setType(floor);
-                    }
+        for (Block block : inTarget.getBlocks()) {
+            if (!toSpare.contains(block.getType())) {
+                if (isFloorBlock(block.getX(), block.getY() - 1, block.getZ(), block.getWorld())) {
+                    block.setType(floor);
+                } else {
+                    block.setType(air);
                 }
             }
-        });
+        }
+    }
+
+    private boolean isFloorBlock(int x, int y, int z, World world) {
+        if (!contains(x, y - 1, z, world)) {
+            return true;
+        }
+        
+        if (contains(x, y - 2, z, world)) {
+            return false;
+        }
+        
+        boolean interior =
+                contains(x + 1, y, z, world)
+                && contains(x - 1, y, z, world)
+                && contains(x, y, z + 1, world)
+                && contains(x, y, z - 1, world);
+
+        return !interior;
     }
 
     ////////////////////////////////
@@ -146,7 +163,7 @@ public abstract class Space {
         }
 
         @Override
-        public Space within(ChunkPosition chunk) {
+        public Space within(Chunk chunk) {
             return this;
         }
 
@@ -217,18 +234,20 @@ public abstract class Space {
     private static final class ChunkLimitedSpace extends Space {
 
         private final Space inner;
-        private final ChunkPosition chunk;
+        private final ChunkPosition chunkPosition;
         private final World chunkWorld;
 
-        public ChunkLimitedSpace(Space inner, ChunkPosition chunk) {
+        public ChunkLimitedSpace(Space inner, ChunkPosition chunkPosition, World world) {
             this.inner = inner;
-            this.chunk = chunk;
-            this.chunkWorld = chunk.getWorld();
+            this.chunkPosition = chunkPosition;
+            this.chunkWorld = world;
         }
 
         @Override
-        public Space within(ChunkPosition chunk) {
-            if (this.chunk.equals(chunk)) {
+        public Space within(Chunk chunk) {
+            if (chunk.getX() == chunkPosition.x
+                    && chunk.getZ() == chunkPosition.z
+                    && chunk.getWorld().getName().equals(chunkPosition.worldName)) {
                 return this;
             } else {
                 return empty();
@@ -238,7 +257,7 @@ public abstract class Space {
         @Override
         public Space offset(int dx, int dy, int dz) {
             if (dx == 0 && dz == 0) {
-                return new ChunkLimitedSpace(inner.offset(dx, dy, dz), chunk);
+                return new ChunkLimitedSpace(inner.offset(dx, dy, dz), chunkPosition, chunkWorld);
             } else {
                 return super.offset(dx, dy, dz);
             }
@@ -246,7 +265,7 @@ public abstract class Space {
 
         @Override
         public boolean contains(int x, int y, int z, World world) {
-            return chunk.contains(x, z)
+            return chunkPosition.contains(x, z)
                     && chunkWorld == world
                     && inner.contains(x, y, z, world);
         }
@@ -256,7 +275,7 @@ public abstract class Space {
             inner.forEachBlock(new BlockAction() {
                 @Override
                 public void apply(int x, int y, int z, World world) {
-                    if (chunk.contains(x, z) && chunkWorld == world) {
+                    if (chunkPosition.contains(x, z) && chunkWorld == world) {
                         action.apply(x, y, z, world);
                     }
                 }
@@ -286,7 +305,7 @@ public abstract class Space {
         }
 
         @Override
-        public Space within(ChunkPosition chunk) {
+        public Space within(Chunk chunk) {
             Space[] limited = new Space[components.length];
 
             for (int i = 0; i < limited.length; ++i) {
@@ -314,9 +333,9 @@ public abstract class Space {
             }
         }
     }
-    ////////////////////////////////
-    // Block Comparison
-    //
+////////////////////////////////
+// Block Comparison
+//
     private static final Comparator<Block> BLOCK_COMPARATOR = new Comparator<Block>() {
         @Override
         public int compare(Block left, Block right) {

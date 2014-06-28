@@ -62,7 +62,7 @@ public class ExperimentalGeography extends JavaPlugin implements Listener {
             ends[i] = perturbNode(world, dest, destY);
         }
 
-        Connector connector = new Connector(where);
+        Connector connector = new Connector(where.getChunk());
         connector.connect(start, ends);
     }
 

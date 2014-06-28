@@ -5,9 +5,8 @@
 package experimentalgeography;
 
 import com.google.common.base.*;
-import com.google.common.collect.Sets;
+import com.google.common.collect.*;
 import java.util.*;
-import javax.print.attribute.standard.Destination;
 import org.bukkit.*;
 import org.bukkit.block.*;
 
@@ -44,7 +43,29 @@ public abstract class Space {
             }
         };
     }
+    ////////////////////////////////
+    // Block Access
+    //
+    private Set<Block> lazyBlocks;
 
+    public final Set<Block> getBlocks() {
+        if (lazyBlocks == null) {
+            Set<Block> blocks = Sets.newTreeSet(BLOCK_COMPARATOR);
+            addBlocksTo(blocks);
+            lazyBlocks = Collections.unmodifiableSet(blocks);
+        }
+
+        return lazyBlocks;
+    }
+
+    public boolean contains(int x, int y, int z, World world) {
+        Block block = world.getBlockAt(x, y, z);
+        return getBlocks().contains(block);
+    }
+
+    ////////////////////////////////
+    // Block Changes
+    //
     public final void fill(Material material) {
         fill(material, Collections.<Material>emptySet());
     }
@@ -66,10 +87,12 @@ public abstract class Space {
         });
     }
 
-    public final Set<Block> getBlocks() {
-        Set<Block> blocks = Sets.newTreeSet(BLOCK_COMPARATOR);
-        addBlocksTo(blocks);
-        return blocks;
+    ////////////////////////////////
+    // Block Enumeration
+    //
+    public interface BlockAction {
+
+        void apply(int x, int y, int z, World world);
     }
 
     public final void addBlocksTo(final Collection<Block> action) {
@@ -84,6 +107,9 @@ public abstract class Space {
 
     public abstract void forEachBlock(BlockAction action);
 
+    ////////////////////////////////
+    // Block Subclasses
+    //
     private static final class EmptySpace extends Space {
 
         public static final EmptySpace INSTANCE = new EmptySpace();
@@ -96,6 +122,11 @@ public abstract class Space {
         @Override
         public Space offset(int dx, int dy, int dz) {
             return this;
+        }
+
+        @Override
+        public boolean contains(int x, int y, int z, World world) {
+            return false;
         }
 
         @Override
@@ -155,10 +186,12 @@ public abstract class Space {
 
         private final Space inner;
         private final ChunkPosition chunk;
+        private final World chunkWorld;
 
         public ChunkLimitedSpace(Space inner, ChunkPosition chunk) {
             this.inner = inner;
             this.chunk = chunk;
+            this.chunkWorld = chunk.getWorld();
         }
 
         @Override
@@ -180,9 +213,14 @@ public abstract class Space {
         }
 
         @Override
-        public void forEachBlock(final BlockAction action) {
-            final World chunkWorld = chunk.getWorld();
+        public boolean contains(int x, int y, int z, World world) {
+            return chunk.contains(x, z)
+                    && chunkWorld == world
+                    && inner.contains(x, y, z, world);
+        }
 
+        @Override
+        public void forEachBlock(final BlockAction action) {
             inner.forEachBlock(new BlockAction() {
                 @Override
                 public void apply(int x, int y, int z, World world) {
@@ -193,6 +231,9 @@ public abstract class Space {
             });
         }
     }
+    ////////////////////////////////
+    // Block Comparison
+    //
     private static final Comparator<Block> BLOCK_COMPARATOR = new Comparator<Block>() {
         @Override
         public int compare(Block left, Block right) {
@@ -217,9 +258,4 @@ public abstract class Space {
             return left.getY() - right.getY();
         }
     };
-
-    public interface BlockAction {
-
-        void apply(int x, int y, int z, World world);
-    }
 }

@@ -38,31 +38,40 @@ public class ExperimentalGeography extends JavaPlugin implements Listener {
         World world = where.getWorld();
         ChunkPopulationSchedule populationSchedule = getPopulationSchedule(world.getSeed());
 
-        ChunkPosition[] adjacent = {
+        // the 8 surrounding chunks; we'll have connection to these, or amoung
+        // them.
+        ChunkPosition[] surroundingChunks = {
+            new ChunkPosition(where.x - 1, where.z - 1, where.worldName),
+            new ChunkPosition(where.x, where.z - 1, where.worldName),
+            new ChunkPosition(where.x + 1, where.z - 1, where.worldName),
             new ChunkPosition(where.x - 1, where.z, where.worldName),
             new ChunkPosition(where.x + 1, where.z, where.worldName),
-            new ChunkPosition(where.x, where.z - 1, where.worldName),
-            new ChunkPosition(where.x, where.z + 1, where.worldName)
+            new ChunkPosition(where.x - 1, where.z + 1, where.worldName),
+            new ChunkPosition(where.x, where.z + 1, where.worldName),
+            new ChunkPosition(where.x + 1, where.z + 1, where.worldName)
         };
 
-        //first is X offset increasing, second is inverse X offset
-        //third is Z offset increasing, fourth is inverse Z offset
-        //combine to have 'density of nearby offset nodes at this chunk'
+        Location[] surroundingNodes = new Location[surroundingChunks.length];
+        for (int i = 0; i < surroundingNodes.length; ++i) {
+            ChunkPosition dest = surroundingChunks[i];
+            OriginalChunkInfo destInfo = populationSchedule.getOriginalChunkInfo(dest);
+            surroundingNodes[i] = perturbNode(world, dest, destInfo.nodeY);
+        }
 
+        // These are the locations of the nodes to the north, west, east, and south;
+        // we connecdt directly to these.
+        Location[] adjacentNodes = {
+            surroundingNodes[1],
+            surroundingNodes[3],
+            surroundingNodes[4],
+            surroundingNodes[6]
+        };
+
+        // The start location; this connects to the adjacent nodes.
         OriginalChunkInfo whereInfo = populationSchedule.getOriginalChunkInfo(where);
         Location start = perturbNode(world, where, whereInfo.nodeY);
 
-        Location[] ends = new Location[adjacent.length];
-
-        for (int i = 0; i < ends.length; ++i) {
-            ChunkPosition dest = adjacent[i];
-            OriginalChunkInfo destInfo = populationSchedule.getOriginalChunkInfo(dest);
-            int destY = destInfo.nodeY;
-
-            ends[i] = perturbNode(world, dest, destY);
-        }
-
-        Connector connector = new Connector(where.getChunk(), start, ends);
+        Connector connector = new Connector(where.getChunk(), start, adjacentNodes, surroundingNodes);
         connector.connect();
         connector.decorate();
     }

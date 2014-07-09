@@ -23,35 +23,70 @@ public final class Connector {
     private final World world;
     private final Location start;
     private final Location[] ends;
-
-    public Connector(Chunk target, Location start, Location[] ends) {
+    private final Location[] surrounding;
+    
+    public Connector(Chunk target, Location start, Location[] ends,Location[] surrounding) {
         this.target = Preconditions.checkNotNull(target);
         this.world = target.getWorld();
-        this.start = start;
-        this.ends = ends;
+        this.start = Preconditions.checkNotNull(start);
+        this.ends = Preconditions.checkNotNull(ends);
+        this.surrounding = Preconditions.checkNotNull(surrounding);
     }
 
     /**
-     * this method actually connects the start location to the ends, but updates
+     * This method actually connects the start location to the ends, but updates
      * only blocks in the target chunk.
      */
     public void connect() {
-        Space space = Space.empty();
-
-        for (Location end : ends) {
-            double dist = start.distance(end);
-
-            if (dist > 0.0) {
-                int size = (int) (Math.cbrt(Math.max(0, 32 - dist)) * 2.1);
-
-                if (size > 1) {
-                    space = space.union(Space.linear(start, end, size, size + 1));
-                }
-            }
-        }
+        Space space = getConnectedSpace();
 
         fillWithFloor(space, Material.AIR, Material.SMOOTH_BRICK,
                 EnumSet.of(Material.DIAMOND_ORE));
+    }
+
+    /**
+     * This method returns the space occupied by the corridors; it is the
+     * union of all spaces connecting the start to the ends, and the ends
+     * to each other in a loop.
+     * 
+     * @return The space to contain our corridors.
+     */
+    private Space getConnectedSpace() {
+        Space space = Space.empty();
+
+        for (Location end : ends) {
+            space = space.union(getConnectingSpace(start, end));
+        }
+
+        for (int i = 0; i < surrounding.length; ++i) {
+            int nextIndex = (i + 1) % surrounding.length;
+            space = space.union(getConnectingSpace(surrounding[i], surrounding[nextIndex]));
+        }
+
+        return space;
+    }
+
+    /**
+     * This method returns the space that connects two points; if the distance
+     * between them is too great, this may simply return an empty space to
+     * indicate that there's no connection.
+     *
+     * @param start The starting point of the space.
+     * @param end The ending point of the space.
+     * @return The space that connects these points, or an empty space.
+     */
+    private static Space getConnectingSpace(Location start, Location end) {
+        double dist = start.distance(end);
+
+        if (dist > 0.0) {
+            int size = (int) (Math.cbrt(Math.max(0, 32 - dist)) * 2.1);
+
+            if (size > 1) {
+                return Space.linear(start, end, size, size + 1);
+            }
+        }
+
+        return Space.empty();
     }
 
     public void decorate() {

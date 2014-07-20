@@ -24,8 +24,8 @@ public final class Connector {
     private final Location start;
     private final Location[] ends;
     private final Location[] surrounding;
-    
-    public Connector(Chunk target, Location start, Location[] ends,Location[] surrounding) {
+
+    public Connector(Chunk target, Location start, Location[] ends, Location[] surrounding) {
         this.target = Preconditions.checkNotNull(target);
         this.world = target.getWorld();
         this.start = Preconditions.checkNotNull(start);
@@ -45,10 +45,10 @@ public final class Connector {
     }
 
     /**
-     * This method returns the space occupied by the corridors; it is the
-     * union of all spaces connecting the start to the ends, and the ends
-     * to each other in a loop.
-     * 
+     * This method returns the space occupied by the corridors; it is the union
+     * of all spaces connecting the start to the ends, and the ends to each
+     * other in a loop.
+     *
      * @return The space to contain our corridors.
      */
     private Space getConnectedSpace() {
@@ -158,12 +158,60 @@ public final class Connector {
     private static boolean isFloorBlock(Space space, int x, int y, int z, World world) {
         if (!space.contains(x, y, z, world)) {
             return false;
-        }
+        }//we're gone if it's not even in the space
+        
+        /*
+        int interiorNeighborCount =
+                  (space.contains(x + 1, y, z, world) ? 1 : 0)
+                + (space.contains(x - 1, y, z, world) ? 1 : 0)
+                + (space.contains(x, y, z + 1, world) ? 1 : 0)
+                + (space.contains(x, y, z - 1, world) ? 1 : 0)
+                + (space.contains(x, y - 1, z, world) ? 1 : 0)
+                + (space.contains(x, y + 1, z, world) ? 1 : 0);
+        
+        
+        
+        if (interiorNeighborCount < 6) {
+            return true;
+        }//almost completely sealed tunnels including sealed walls */
+        
 
+        
+        /*
+        int interiorNeighborCount =
+                  (space.contains(x + 1, y, z, world) ? 1 : 0)
+                + (space.contains(x - 1, y, z, world) ? 1 : 0)
+                + (space.contains(x, y, z + 1, world) ? 1 : 0)
+                + (space.contains(x, y, z - 1, world) ? 1 : 0);
+    
+           if (interiorNeighborCount < 3) {
+               return true;
+           }//this is like spooky columns and stone kibble */
+           
+        
+
+               int interiorNeighborCount =
+                  (space.contains(x + 1, y, z, world) ? 2 : 0)
+                + (space.contains(x - 1, y, z, world) ? 2 : 0)
+                + (space.contains(x, y, z + 1, world) ? 1 : 0)
+                + (space.contains(x, y, z - 1, world) ? 1 : 0);
+    
+           if (interiorNeighborCount % 2 == 1) {
+               return true;
+           }
+
+        
+        
+        
         if (!space.contains(x, y - 1, z, world)) {
             return true;
-        }
+        }//we're floor if it IS but the block below isn't in the space
 
+        
+        
+        
+        return false;
+/*        
         if (space.contains(x, y - 2, z, world)) {
             return false;
         }
@@ -180,5 +228,10 @@ public final class Connector {
         } else {
             return true;
         }
+  */      
+        
+        
+        
+        
     }
 }

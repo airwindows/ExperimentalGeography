@@ -8,8 +8,8 @@ import java.util.*;
 import org.bukkit.*;
 
 /**
- * This class holds onto data about a chunk that is captured when the chunk is
- * loaded. This lets us 'remember' stuff that we'll change later.
+ * This class holds onto data about a chunk that is captured when the chunk is loaded. This lets us 'remember' stuff that we'll
+ * change later.
  *
  * @author DanJ
  */
@@ -17,6 +17,7 @@ public final class OriginalChunkInfo implements MapFileMap.Storable {
 
     public final ChunkPosition position;
     public final int highestBlockY;
+    public final int spotBiome;
     public final int nodeY;
 
     public OriginalChunkInfo(Chunk chunk) {
@@ -26,13 +27,15 @@ public final class OriginalChunkInfo implements MapFileMap.Storable {
         int centerZ = (int) center.getZ();
 
         highestBlockY = chunk.getWorld().getHighestBlockYAt(centerX, centerZ);
+        spotBiome = chunk.getBlock(8, 8, 8).getBiome().ordinal();
+        //from 7 to 67
 
         if (chunk.getWorld().getEnvironment() != World.Environment.NORMAL) {
             Random rnd = ExperimentalGeography.getChunkRandom(chunk.getWorld(), position);
             rnd.nextInt(64);
-            nodeY = rnd.nextInt(24) + 48;
+            nodeY = rnd.nextInt(20) + 60;
         } else {
-            nodeY = (int) (highestBlockY / 1.5) - 16;
+            nodeY = (int) Math.max(6, ((highestBlockY / 1.28) - (spotBiome * 0.6)));
             //divisor controls steepness, subtract moves tunnels down nearer bedrock
             //these can be biome dependent as it will linearly shift between them
             //we can have some biomes very flat, or some where it intersects surface a lot
@@ -44,6 +47,7 @@ public final class OriginalChunkInfo implements MapFileMap.Storable {
     public OriginalChunkInfo(MapFileMap map) {
         this.position = map.getValue("position", ChunkPosition.class);
         this.highestBlockY = map.getInteger("highestBlockY");
+        this.spotBiome = map.getInteger("spotBiome");
         this.nodeY = map.getInteger("nodeY");
     }
 
@@ -52,6 +56,7 @@ public final class OriginalChunkInfo implements MapFileMap.Storable {
         MapFileMap map = new MapFileMap();
         map.put("position", position);
         map.put("highestBlockY", highestBlockY);
+        map.put("spotBiome", spotBiome);
         map.put("nodeY", nodeY);
         return map;
     }

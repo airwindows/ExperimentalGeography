@@ -179,7 +179,7 @@ public final class Connector {
         //these get overridden randomly. It's independent of the tunnel biome override as they are not just
         //assigning stuff according to biome, it's increasing the pool of possible outcomes according to the biome #
 
-        int randomIndex = itemPickRandom.nextInt(Math.max(1, this.biome.ordinal()) + 20);
+        int randomIndex = itemPickRandom.nextInt(Math.max(1, this.biome.ordinal()) + 25);
         //from 7 swampland to 67 Mega Spruce Taiga Hills
         //our overrides are a big switch with the normal ones low and the crazy stuff high
         switch (randomIndex) {
@@ -248,16 +248,6 @@ public final class Connector {
             case 77:
             case 78:
             case 79:
-            case 80:
-            case 81:
-            case 82:
-            case 83:
-            case 84:
-            case 86:
-            case 87:
-            case 88:
-            case 89:
-            case 90:
                 floorFeature = Material.DIAMOND_BLOCK;
                 //fight past all the monstrosity and there can be rewards
                 break;
@@ -279,42 +269,52 @@ public final class Connector {
                 mobType = EntityType.SPIDER;
                 break;
             case 38:
-            case 60:
                 floorFeature = Material.MOB_SPAWNER;
                 mobType = EntityType.WITCH;
                 break;
             case 39:
-            case 61:
                 floorFeature = Material.MOB_SPAWNER;
                 mobType = EntityType.ENDERMAN;
                 break;
             case 48:
-            case 62:
                 floorFeature = Material.MOB_SPAWNER;
                 mobType = EntityType.CAVE_SPIDER;
                 break;
             case 49:
             case 58:
             case 59:
-            case 63:
-            case 66:
-            case 69:
-            case 72:
+            case 60:
+            case 61:
                 floorFeature = Material.MOB_SPAWNER;
                 mobType = EntityType.BLAZE;
                 break;
+            case 62:
+            case 63:
             case 64:
             case 65:
+            case 66:
             case 67:
             case 68:
+            case 69:
             case 70:
             case 71:
+            case 72:
             case 73:
             case 74:
                 floorFeature = Material.MOB_SPAWNER;
                 mobType = EntityType.GHAST;
                 break;
+            case 80:
+            case 81:
+            case 82:
+            case 83:
+            case 84:
             case 85:
+            case 86:
+            case 87:
+            case 88:
+            case 89:
+            case 90:
                 floorFeature = Material.MOB_SPAWNER;
                 mobType = EntityType.WITHER;
                 //may be unreachable, but yowza!

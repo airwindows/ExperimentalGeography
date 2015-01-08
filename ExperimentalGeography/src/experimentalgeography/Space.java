@@ -98,7 +98,7 @@ public abstract class Space {
      * @return The new, adjusted space.
      */
     public Space offset(final int dx, final int dy, final int dz) {
-        if (dz == 0 && dy == 0 && dz == 0) {
+        if (dx == 0 && dy == 0 && dz == 0) {
             return this;
         }
 
@@ -255,7 +255,7 @@ public abstract class Space {
         public Space offset(int dx, int dy, int dz) {
             return new LinearSpace(
                     start.clone().add(dx, dy, dz),
-                    end.clone().add(dz, dy, dz),
+                    end.clone().add(dx, dy, dz),
                     width, height);
         }
 

@@ -159,7 +159,7 @@ public final class Connector {
         double dist = start.distance(end);
 
         if (dist > 0.0) {
-            int size = (int) (Math.cbrt(Math.max(0, 32 - dist)) * width);
+            int size = (int) (Math.cbrt(Math.max(0.1, 32 - dist)) * width);
 
             if (size > 1) {
                 return Space.linear(start, end, size, size);
@@ -373,13 +373,13 @@ public final class Connector {
                 break;
             case SKY:
                 cornerBlocks = Material.SMOOTH_BRICK; //default cases for stuff
-                cornerData = 0;
+                cornerData = 1;
                 edgeBlocks = Material.SMOOTH_BRICK;
-                edgeData = 0;
+                edgeData = 1;
                 wallBlocks = Material.SMOOTH_BRICK;
                 wallData = 0;
                 floorBlocks = Material.SMOOTH_BRICK;
-                floorData = 8;  //stone brick data 0=plain 1=mossy 2=cracked 3=chiseled
+                floorData = 2;  //stone brick data 0=plain 1=mossy 2=cracked 3=chiseled
 
                 break;
 

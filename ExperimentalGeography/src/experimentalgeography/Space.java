@@ -410,7 +410,7 @@ public abstract class Space {
     ////////////////////////////////
     // Block Comparison
     //
-    private static final Comparator<Block> BLOCK_COMPARATOR = new Comparator<Block>() {
+     private static final Comparator<Block> BLOCK_COMPARATOR = new Comparator<Block>() {
         @Override
         public int compare(Block left, Block right) {
             if (left == right) {
@@ -421,17 +421,27 @@ public abstract class Space {
                 return 1;
             }
 
-            int cmp = left.getX() - right.getX();
+            int cmp = compareInts(left.getX(), right.getX());
             if (cmp != 0) {
                 return cmp;
             }
 
-            cmp = left.getZ() - right.getZ();
+            cmp = compareInts(left.getZ(), right.getZ());
             if (cmp != 0) {
                 return cmp;
             }
 
-            return left.getY() - right.getY();
+            return compareInts(left.getY(), right.getY());
         }
     };
+
+    private static int compareInts(int left, int right) {
+        if (left == right) {
+            return 0;
+        } else if (left < right) {
+            return -1;
+        } else {
+            return 1;
+        }
+    }
 }

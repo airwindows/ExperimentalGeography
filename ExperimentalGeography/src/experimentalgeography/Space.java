@@ -315,15 +315,17 @@ public abstract class Space {
         @Override
         public Space within(int minX, int maxX, int minZ, int maxZ, World world) {
             if (this.world == world) {
-                return new LimitedSpace(inner,
-                        Math.max(this.minX, minX),
-                        Math.min(this.maxX, maxX),
-                        Math.max(this.minZ, minZ),
-                        Math.min(this.maxZ, maxZ),
-                        world);
-            } else {
-                return empty();
+                int newMinX = Math.max(this.minX, minX);
+                int newMaxX = Math.min(this.maxX, maxX);
+                int newMinZ = Math.max(this.minZ, minZ);
+                int newMaxZ = Math.min(this.maxZ, maxZ);
+
+                if (newMinX <= newMaxX && newMinZ <= newMaxZ) {
+                    return new LimitedSpace(inner, newMinX, newMaxX, newMinZ, newMaxZ, world);
+                }
             }
+
+            return empty();
         }
 
         @Override

@@ -71,7 +71,7 @@ public abstract class Space {
         int maxX = minX + 15;
         int maxZ = minZ + 15;
 
-        return within(minX, minZ, maxX, maxZ, chunk.getWorld());
+        return within(minX, maxX, minZ, maxZ, chunk.getWorld());
     }
 
     /**
@@ -410,7 +410,7 @@ public abstract class Space {
     ////////////////////////////////
     // Block Comparison
     //
-     private static final Comparator<Block> BLOCK_COMPARATOR = new Comparator<Block>() {
+    private static final Comparator<Block> BLOCK_COMPARATOR = new Comparator<Block>() {
         @Override
         public int compare(Block left, Block right) {
             if (left == right) {

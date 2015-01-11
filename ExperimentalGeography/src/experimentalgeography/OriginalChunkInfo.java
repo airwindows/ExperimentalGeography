@@ -6,6 +6,7 @@ package experimentalgeography;
 
 import java.util.*;
 import org.bukkit.*;
+import org.bukkit.block.Biome;
 
 /**
  * This class holds onto data about a chunk that is captured when the chunk is loaded. This lets us 'remember' stuff that we'll
@@ -33,9 +34,21 @@ public final class OriginalChunkInfo implements MapFileMap.Storable {
         if (chunk.getWorld().getEnvironment() != World.Environment.NORMAL) {
             Random rnd = ExperimentalGeography.getChunkRandom(chunk.getWorld(), position);
             rnd.nextInt(64);
-            nodeY = rnd.nextInt(20) + 60;
+            if (chunk.getBlock(8, 8, 8).getBiome() == Biome.HELL) {
+                nodeY = rnd.nextInt(80) + 30;
+                //nether is crazy catwalks of disorienting steepness
+            } else {
+                nodeY = rnd.nextInt(5) + 46;
+                //end is strangely flat
+            }
         } else {
-            nodeY = (int) Math.max(6, ((highestBlockY / 1.28) - (spotBiome * 0.6)));
+
+            if (chunk.getBlock(8, 8, 8).getBiome().name().contains("S")) {
+                nodeY = (int) Math.max(5, ((highestBlockY / 1.38) - (spotBiome * 0.6)) + 10);
+                //entrances in hills. Extreme are plain, others will show blocks
+            } else {
+                nodeY = (int) Math.max(5, ((highestBlockY / 1.38) - (spotBiome * 0.6)) - 10);
+            }
             //divisor controls steepness, subtract moves tunnels down nearer bedrock
             //these can be biome dependent as it will linearly shift between them
             //we can have some biomes very flat, or some where it intersects surface a lot

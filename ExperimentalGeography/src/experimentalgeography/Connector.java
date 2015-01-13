@@ -5,6 +5,7 @@
 package experimentalgeography;
 
 import com.google.common.base.*;
+import static experimentalgeography.ExperimentalGeography.getChunkRandom;
 import java.util.*;
 import org.bukkit.*;
 import org.bukkit.block.*;
@@ -37,6 +38,7 @@ public final class Connector {
     private EnumSet wallSpare;
     private EnumSet floorSpare;
     private EnumSet hollowSpare;
+    private EnumSet solidColumn;
 
     public Connector(Chunk target, Location start, Location[] ends, Location[] surrounding) {
         this.target = Preconditions.checkNotNull(target);
@@ -58,6 +60,7 @@ public final class Connector {
         this.wallSpare = EnumSet.of(Material.AIR, Material.GLOWSTONE, Material.NETHER_BRICK, Material.GOLD_ORE, Material.EMERALD_ORE, Material.DIAMOND_ORE, Material.MOB_SPAWNER, Material.ENDER_PORTAL_FRAME, Material.CHEST);
         this.floorSpare = EnumSet.of(Material.GLOWSTONE, Material.NETHER_BRICK, Material.EMERALD_ORE, Material.DIAMOND_ORE, Material.MOB_SPAWNER, Material.ENDER_PORTAL_FRAME, Material.CHEST);
         this.hollowSpare = EnumSet.of(Material.AIR, Material.GLOWSTONE, Material.NETHER_BRICK, Material.MOB_SPAWNER, Material.ENDER_PORTAL_FRAME, Material.CHEST);
+        this.solidColumn = EnumSet.of(Material.WEB, Material.DIAMOND_BLOCK, Material.EMERALD_BLOCK, Material.LAPIS_BLOCK, Material.GOLD_BLOCK, Material.MONSTER_EGGS, Material.MOB_SPAWNER, Material.TNT);
 
 
     }
@@ -168,18 +171,20 @@ public final class Connector {
         if (start.getBlock().getBiome().name().contains("MEGA")) {
             bailout = bailout - 0.5;
         }
-      if (start.getBlock().getBiome().name().contains("S")) {
+        if (start.getBlock().getBiome().name().contains("S")) {
             bailout = bailout - 0.5;
         }
-      if (start.getBlock().getBiome().name().contains("K")) {
+        if (start.getBlock().getBiome().name().contains("K")) {
             bailout = bailout - 0.5;
         }
-     if (start.getBlock().getBiome().name().contains("Y")) {
-            bailout = bailout - 0.5;
+        if (start.getBlock().getBiome().name().contains("Y")) {
+            bailout = bailout - 0.4;
         }
-
-      if (start.getBlock().getBiome().name().contains("HILLS")) {
-            bailout = bailout + 1;
+        if (start.getBlock().getBiome().name().contains("HILLS")) {
+            bailout = bailout + 1.1;
+        }
+        if (start.getBlock().getBiome().name().contains("MOUNTAINS")) {
+            bailout = bailout + 1.4;
         }
 
         if (dist > 0.0) {
@@ -194,20 +199,33 @@ public final class Connector {
     }
 
     public void decorate() {
-        if ((this.biome == biome.HELL) || (this.biome == biome.SKY)) {
-            //bail without doing anything if we're in Nether or End
+
+        if ((this.biome == biome.HELL) || (this.biome == biome.SKY) || this.biome.name().contains("ICE") || this.biome.name().contains("FROZEN")) {
+            //bail without doing anything if we're in Nether or End or an Ice or Frozen biome
             return;
         }
         final int darkness = (int) ((this.biome.ordinal() * 0.2) + 30);
         double dist = 0.0;
         //distance between nodes has to be smaller than this to place features
         Material ceilingLight = Material.GLOWSTONE;
-        Material floorFeature = Material.MOB_SPAWNER;
-        EntityType mobType = EntityType.ZOMBIE;
+        Material floorFeature = Material.NETHERRACK;
+        //defaults for lighting
+        if (this.biome.ordinal() < 25) {
+            ceilingLight = Material.COAL_ORE;
+            //noncrazy biomes don't get the glowstone ceiling lighting
+        }
+        if (this.biome.ordinal() > 15) {
+            floorFeature = Material.IRON_BLOCK;
+            //biomes that aren't real basic don't get the 'campfires' effect, but more iron loot
+            //Stuff in between will get NO lighting beyond what you place, there's a 'dark zone'
+            //This is not physical transition but defining a class of biome conditions some of which
+            //may be used as border biomes
+        }
+        EntityType mobType = EntityType.CHICKEN;
         //these get overridden randomly. It's independent of the tunnel biome override as they are not just
         //assigning stuff according to biome, it's increasing the pool of possible outcomes according to the biome #
 
-        int randomIndex = itemPickRandom.nextInt(Math.max(1, this.biome.ordinal()) + 24);
+        int randomIndex = itemPickRandom.nextInt(Math.max(1, this.biome.ordinal()) + 27);
         //from 7 swampland to 67 Mega Spruce Taiga Hills
         //our overrides are a big switch with the normal ones low and the crazy stuff high
         switch (randomIndex) {
@@ -217,32 +235,47 @@ public final class Connector {
                 //hole for a water stream to fall into
                 break;
             case 22:
-            case 32:
+            case 24:
                 ceilingLight = Material.LAVA;
                 floorFeature = Material.AIR;
-                //hole for a lava stream to fall into
                 break;
-            case 24:
             case 34:
-            case 25:
-            case 35:
-            case 44:
-            case 54:
-            case 45:
-            case 55:
-            case 56:
-                floorFeature = Material.IRON_BLOCK;
+                ceilingLight = Material.OBSIDIAN;
+                floorFeature = Material.TNT;
+                //boobytrap
                 break;
+            case 56:
+                ceilingLight = Material.TNT;
+                floorFeature = Material.TNT;
+                //vertical TNT pillar, just to be disturbing
+                break;
+            case 8:
+                floorFeature = Material.DIRT;
+                //plant trees or try to
+                break;
+            case 25:
             case 26:
             case 27:
+            case 32:
             case 36:
             case 37:
-            case 46:
                 floorFeature = Material.COAL_BLOCK;
+                break;
+            case 35:
+            case 54:
+            case 44:
+            case 45:
+            case 46:
+                ceilingLight = Material.IRON_BLOCK;
+                floorFeature = Material.IRON_BLOCK;
                 break;
             case 47:
                 ceilingLight = Material.GOLD_BLOCK;
                 floorFeature = Material.GOLD_BLOCK;
+                break;
+            case 55:
+                ceilingLight = Material.LAPIS_BLOCK;
+                floorFeature = Material.LAPIS_BLOCK;
                 break;
             case 57:
                 ceilingLight = Material.EMERALD_BLOCK;
@@ -250,10 +283,36 @@ public final class Connector {
                 //fight past all the monstrosity and there can be rewards
                 break;
             case 75:
+                ceilingLight = Material.MOB_SPAWNER;
+                floorFeature = Material.MOB_SPAWNER;
+                mobType = EntityType.PIG_ZOMBIE;
+                //the scary ones
+                break;
             case 76:
+                ceilingLight = Material.MOB_SPAWNER;
+                floorFeature = Material.MOB_SPAWNER;
+                mobType = EntityType.ZOMBIE;
+                //the scary ones
+                break;
             case 77:
+                ceilingLight = Material.MOB_SPAWNER;
+                floorFeature = Material.MOB_SPAWNER;
+                mobType = EntityType.SKELETON;
+                //the scary ones
+                break;
             case 78:
+                ceilingLight = Material.MOB_SPAWNER;
+                floorFeature = Material.MOB_SPAWNER;
+                mobType = EntityType.CREEPER;
+                //the scary ones
+                break;
             case 79:
+                ceilingLight = Material.MOB_SPAWNER;
+                floorFeature = Material.MOB_SPAWNER;
+                mobType = EntityType.SILVERFISH;
+                //the scary ones
+                break;
+
             case 82:
             case 83:
             case 84:
@@ -289,11 +348,11 @@ public final class Connector {
                 break;
             case 19:
                 floorFeature = Material.MOB_SPAWNER;
-                mobType = EntityType.CREEPER;
+                mobType = EntityType.SKELETON;
                 break;
             case 28:
                 floorFeature = Material.MOB_SPAWNER;
-                mobType = EntityType.SKELETON;
+                mobType = EntityType.CREEPER;
                 break;
             case 29:
                 ceilingLight = Material.WEB;
@@ -316,6 +375,10 @@ public final class Connector {
                 mobType = EntityType.CAVE_SPIDER;
                 break;
             case 49:
+                ceilingLight = Material.MONSTER_EGGS;
+                floorFeature = Material.MOB_SPAWNER;
+                mobType = EntityType.SILVERFISH;
+                break;
             case 58:
             case 59:
             case 60:
@@ -350,6 +413,11 @@ public final class Connector {
                 ceilingLight = Material.DIAMOND_BLOCK;
                 floorFeature = Material.MOB_SPAWNER;
                 mobType = EntityType.WITHER;
+                if (this.biome.name().contains("EXTREME")) {
+                    //not THAT extreme! Let the player see the bomb first!
+                    ceilingLight = Material.GLASS;
+                    floorFeature = Material.BEDROCK;
+                }
                 //may be unreachable, but yowza!
                 break;
             case 81:
@@ -357,8 +425,6 @@ public final class Connector {
                 //pit to void. Glowstone lights it. As common as wither
                 break;
         }
-
-
 
         for (Location end : ends) {
             dist = Math.max(dist, start.distance(end));
@@ -371,7 +437,7 @@ public final class Connector {
             Block block;
             if (ChunkPosition.of(target).contains(x, z)) {
                 block = world.getBlockAt(x, y, z);
-                while ((block.getType() == Material.AIR) && block.getY() < 255) {
+                while ((block.getType() == Material.AIR) && block.getY() < 80) {
                     block = block.getRelative(BlockFace.UP);
                 }
                 block.setType(ceilingLight);
@@ -381,10 +447,16 @@ public final class Connector {
                     block = block.getRelative(BlockFace.DOWN);
                 }
 
-                if ((ceilingLight == Material.WEB) || (ceilingLight == Material.DIAMOND_BLOCK) || (ceilingLight == Material.EMERALD_BLOCK) || (ceilingLight == Material.GOLD_BLOCK)) {
+                if (solidColumn.contains(ceilingLight)) {
                     block = block.getRelative(BlockFace.DOWN);
                     while ((block.getType() == Material.AIR) && block.getY() > 0) {
                         block.setType(ceilingLight);
+                        if (ceilingLight == Material.MOB_SPAWNER) {
+                            BlockState blockState = block.getState();
+                            CreatureSpawner spawner = ((CreatureSpawner) blockState);
+                            spawner.setSpawnedType(mobType);
+                            blockState.update();
+                        }
                         block = block.getRelative(BlockFace.DOWN);
                     }
                     //make a pillar of these special materials to indicate what's there                    
@@ -397,12 +469,19 @@ public final class Connector {
                 }
 
                 block.setType(floorFeature);
-                if (floorFeature == Material.MOB_SPAWNER) {
-                    BlockState blockState = block.getState();
-                    CreatureSpawner spawner = ((CreatureSpawner) blockState);
-                    spawner.setSpawnedType(mobType);
-                    blockState.update();
-                    if ((mobType == EntityType.COW) || (mobType == EntityType.PIG) || (mobType == EntityType.CHICKEN)) {
+                if (floorFeature == Material.NETHERRACK) {
+                    block.getRelative(0, 1, 0).setType(Material.FIRE);
+                    //campfires
+                }
+
+                if (floorFeature == Material.DIRT) {
+                    boolean treeSuccess;
+                    if (this.biome.ordinal() < 30) {
+                        treeSuccess = block.getWorld().generateTree(block.getRelative(0, 1, 0).getLocation(), TreeType.TREE);
+                    } else {
+                        treeSuccess = block.getWorld().generateTree(block.getRelative(0, 1, 0).getLocation(), TreeType.BIG_TREE);
+                    }
+                    if (treeSuccess) {
                         block.getRelative(1, 0, 0).setType(Material.GRASS);
                         block.getRelative(-1, 0, 0).setType(Material.GRASS);
                         block.getRelative(0, 0, 1).setType(Material.GRASS);
@@ -411,11 +490,78 @@ public final class Connector {
                         block.getRelative(1, 0, -1).setType(Material.GRASS);
                         block.getRelative(-1, 0, 1).setType(Material.GRASS);
                         block.getRelative(-1, 0, -1).setType(Material.GRASS);
+                    }
+                    //underground trees, little groves
+                }
+
+
+                if (floorFeature == Material.MOB_SPAWNER) {
+                    BlockState blockState = block.getState();
+                    CreatureSpawner spawner = ((CreatureSpawner) blockState);
+                    spawner.setSpawnedType(mobType);
+                    blockState.update();
+                    if ((mobType == EntityType.COW) || (mobType == EntityType.PIG) || (mobType == EntityType.CHICKEN)) {
+                        block.getRelative(1, 0, 0).setType(Material.GRASS);
                         //food mobs need to spawn on grass
                     }
+                    if (mobType == EntityType.CREEPER) {
+                        block.getRelative(1, 0, 0).setType(Material.TNT);
+                        block.getRelative(-1, 0, 0).setType(Material.TNT);
+                        block.getRelative(0, 0, 1).setType(Material.TNT);
+                        block.getRelative(0, 0, -1).setType(Material.TNT);
+                        block.getRelative(1, 0, 1).setType(Material.TNT);
+                        block.getRelative(1, 0, -1).setType(Material.TNT);
+                        block.getRelative(-1, 0, 1).setType(Material.TNT);
+                        block.getRelative(-1, 0, -1).setType(Material.TNT);
+                        //creepers spawn on TNT for added WTF
+                    }
+                }
+                if ((floorFeature == Material.TNT) && (ceilingLight == Material.OBSIDIAN)) {
+                    block.getRelative(0, 1, 0).setType(Material.TRAPPED_CHEST);
+                    if (this.biome.ordinal() > 10) {
+                        block.getRelative(0, -1, 0).setType(Material.TNT);
+                    }
+                    if (this.biome.ordinal() > 20) {
+                        block.getRelative(0, -2, 0).setType(Material.TNT);
+                    }
+                    if (this.biome.ordinal() > 30) {
+                        block.getRelative(0, -3, 0).setType(Material.TNT);
+                        block.getRelative(0, 1, 0).setType(Material.TRAPPED_CHEST);
+                    }
+                    if (this.biome.ordinal() > 40) {
+                        block.getRelative(0, -4, 0).setType(Material.TNT);
+                    }
+                    if (this.biome.ordinal() > 50) {
+                        block.getRelative(0, 1, 0).setType(Material.TRAPPED_CHEST);
+                        block.getRelative(1, -2, 0).setType(Material.TNT);
+                        block.getRelative(-1, -2, 0).setType(Material.TNT);
+                        block.getRelative(0, -2, 1).setType(Material.TNT);
+                        block.getRelative(0, -2, -1).setType(Material.TNT);
+                        block.getRelative(1, -2, 1).setType(Material.TNT);
+                        block.getRelative(1, -2, -1).setType(Material.TNT);
+                        block.getRelative(-1, -2, 1).setType(Material.TNT);
+                        block.getRelative(-1, -2, -1).setType(Material.TNT);
+                        block.getRelative(1, -3, 0).setType(Material.TNT);
+                        block.getRelative(-1, -3, 0).setType(Material.TNT);
+                        block.getRelative(0, -3, 1).setType(Material.TNT);
+                        block.getRelative(0, -3, -1).setType(Material.TNT);
+                        block.getRelative(1, -3, 1).setType(Material.TNT);
+                        block.getRelative(1, -3, -1).setType(Material.TNT);
+                        block.getRelative(-1, -3, 1).setType(Material.TNT);
+                        block.getRelative(-1, -3, -1).setType(Material.TNT);
+                        block.getRelative(1, -4, 0).setType(Material.TNT);
+                        block.getRelative(-1, -4, 0).setType(Material.TNT);
+                        block.getRelative(0, -4, 1).setType(Material.TNT);
+                        block.getRelative(0, -4, -1).setType(Material.TNT);
+                        block.getRelative(1, -4, 1).setType(Material.TNT);
+                        block.getRelative(1, -4, -1).setType(Material.TNT);
+                        block.getRelative(-1, -4, 1).setType(Material.TNT);
+                        block.getRelative(-1, -4, -1).setType(Material.TNT);
+                        //silly large explosion if it's a gold plate
+                    }
+                    //boom! that gets worse as you go to more dangerous areas. Mobs can also trip it.
                 }
                 if (floorFeature == Material.BEDROCK) {
-                    //pit to void, based on Snowball Madness ring code
                     Location locationBuffer = block.getLocation();
 
                     Block pitBlock = locationBuffer.getBlock();
@@ -473,9 +619,8 @@ public final class Connector {
      * This method assigns the wall surfaces.
      */
     private void assignWallSurfaces(Biome biome) {
-
+        Random random = new Random();
         switch (biome) {
-
             case HELL:
                 cornerBlocks = Material.NETHER_BRICK; //default cases for stuff
                 cornerData = 0;
@@ -499,9 +644,7 @@ public final class Connector {
                 break;
 
             case EXTREME_HILLS:
-            case EXTREME_HILLS_PLUS:
             case EXTREME_HILLS_MOUNTAINS:
-            case EXTREME_HILLS_PLUS_MOUNTAINS:
                 cornerBlocks = Material.AIR;
                 cornerData = 0;
                 edgeBlocks = Material.AIR;
@@ -513,10 +656,61 @@ public final class Connector {
                 //Extreme hills gives just caves, linked. expands spaces, breaks up other biome tunnels.
                 //Weird versions give HUGE bare caves.
                 break;
+            case EXTREME_HILLS_PLUS:
+                cornerBlocks = Material.STAINED_GLASS;
+                cornerData = 15;
+                edgeBlocks = Material.STAINED_GLASS;
+                edgeData = 15;
+                wallBlocks = Material.STAINED_GLASS;
+                wallData = 15;
+                floorBlocks = Material.STAINED_GLASS;
+                floorData = 0;
+                //hint of what is to come
+                break;
 
+            case EXTREME_HILLS_PLUS_MOUNTAINS:
+                cornerBlocks = Material.TNT;
+                cornerData = 0;
+                edgeBlocks = Material.STAINED_GLASS;
+                edgeData = 15;
+                wallBlocks = Material.STAINED_GLASS;
+                wallData = 15;
+                floorBlocks = Material.STAINED_GLASS;
+                floorData = 0;
+                if (random.nextInt(4) == 1) {
+                    edgeBlocks = Material.TNT;
+                    edgeData = 0;
+                }
+
+
+                //hehehehehehehehe
+                break;
+
+            case FLOWER_FOREST:
+                cornerBlocks = Material.WOOL;
+                cornerData = (byte) random.nextInt(16);
+                edgeBlocks = Material.WOOL;
+                edgeData = (byte) random.nextInt(16);
+                wallBlocks = Material.WOOL;
+                wallData = (byte) random.nextInt(16);
+                floorBlocks = Material.WOOL;
+                floorData = (byte) random.nextInt(16);
+                //flammable
+                break;
+
+            case PLAINS:
+                cornerBlocks = Material.COBBLESTONE;
+                cornerData = 0;
+                edgeBlocks = Material.COBBLESTONE;
+                edgeData = 0;
+                wallBlocks = Material.SMOOTH_BRICK;
+                wallData = 0;
+                floorBlocks = Material.SMOOTH_BRICK;
+                floorData = 0;
+                //forest, plains have cobble
+                break;
             case FOREST:
             case FOREST_HILLS:
-            case PLAINS:
                 cornerBlocks = Material.COBBLESTONE;
                 cornerData = 0;
                 edgeBlocks = Material.COBBLESTONE;
@@ -526,19 +720,15 @@ public final class Connector {
                 floorBlocks = Material.STONE;
                 floorData = 0;
                 //forest, plains have cobble
-
-
-
-
                 break;
             case JUNGLE:
             case JUNGLE_HILLS:
             case JUNGLE_EDGE:
             case JUNGLE_MOUNTAINS:
             case JUNGLE_EDGE_MOUNTAINS:
-                cornerBlocks = Material.COBBLESTONE;
+                cornerBlocks = Material.MOSSY_COBBLESTONE;
                 cornerData = 0;
-                edgeBlocks = Material.COBBLESTONE;
+                edgeBlocks = Material.MOSSY_COBBLESTONE;
                 edgeData = 0;
                 wallBlocks = Material.COBBLESTONE;
                 wallData = 0;
@@ -548,15 +738,26 @@ public final class Connector {
                 break;
 
             case ROOFED_FOREST:
+            case ROOFED_FOREST_MOUNTAINS:
+                cornerBlocks = Material.LOG_2;
+                cornerData = 9;
+                edgeBlocks = Material.LOG_2;
+                edgeData = 9;
+                wallBlocks = Material.LEAVES_2;
+                wallData = 5;
+                floorBlocks = Material.LEAVES_2;
+                floorData = 5;
+                //under roofed forest is wooden caves
+                break;
             case SWAMPLAND:
             case SWAMPLAND_MOUNTAINS:
                 cornerBlocks = Material.MOSSY_COBBLESTONE;
                 cornerData = 0;
                 edgeBlocks = Material.MOSSY_COBBLESTONE;
                 edgeData = 0;
-                wallBlocks = Material.MOSSY_COBBLESTONE;
+                wallBlocks = Material.COBBLESTONE;
                 wallData = 0;
-                floorBlocks = Material.MOSSY_COBBLESTONE;
+                floorBlocks = Material.GRASS;
                 floorData = 0;
                 //under swamp is mossy cobble
                 break;
@@ -574,11 +775,22 @@ public final class Connector {
                 //deserts are made of sandstone
                 break;
 
+            case COLD_BEACH:
+                cornerBlocks = Material.GLOWSTONE;
+                cornerData = 0;
+                edgeBlocks = Material.GLOWSTONE;
+                edgeData = 0;
+                wallBlocks = Material.PACKED_ICE;
+                wallData = 0;
+                floorBlocks = Material.PACKED_ICE;
+                floorData = 0;
+                //trapped in ice caves, glowstone marks the exits
+                break;
+
             case FROZEN_OCEAN:
             case FROZEN_RIVER:
             case ICE_PLAINS:
             case ICE_MOUNTAINS:
-            case COLD_BEACH:
             case COLD_TAIGA:
             case COLD_TAIGA_HILLS:
             case ICE_PLAINS_SPIKES:
@@ -602,26 +814,26 @@ public final class Connector {
                 edgeData = 14;
                 wallBlocks = Material.HUGE_MUSHROOM_2;
                 wallData = 15;
-                floorBlocks = Material.HUGE_MUSHROOM_2;
-                floorData = 5;
+                floorBlocks = Material.GRASS;
+                floorData = 0;
                 //mushroom islands and roofed forest are made of mushroom
                 break;
 
 
             case BEACH:
-            case OCEAN:
             case RIVER:
-                cornerBlocks = Material.SMOOTH_BRICK;
-                cornerData = 1;
+                cornerBlocks = Material.MOSSY_COBBLESTONE;
+                cornerData = 0;
                 edgeBlocks = Material.SMOOTH_BRICK;
-                edgeData = 1;
+                edgeData = (byte) random.nextInt(2);
                 wallBlocks = Material.SMOOTH_BRICK;
-                wallData = 1;
+                wallData = (byte) random.nextInt(2);
                 floorBlocks = Material.SMOOTH_BRICK;
                 floorData = 1;  //stone brick data 0=plain 1=mossy 2=cracked 3=chiseled
                 //under water the bricks are mossy because water. Beach is near water.
                 break;
 
+            case OCEAN:
             case DEEP_OCEAN:
                 cornerBlocks = Material.SANDSTONE;
                 cornerData = 1;
@@ -635,11 +847,47 @@ public final class Connector {
                 break;
 
             case MESA_BRYCE:
+                cornerBlocks = Material.QUARTZ_BLOCK;
+                cornerData = 1;
+                edgeBlocks = Material.QUARTZ_BLOCK;
+                edgeData = 2;
+                wallBlocks = Material.QUARTZ_BLOCK;
+                wallData = 0;
+                floorBlocks = Material.QUARTZ_BLOCK;
+                floorData = 3;
+                break;
+            //bryce counter to expectation is quartz halls
+
+            case SAVANNA_PLATEAU:
+            case MESA_PLATEAU_FOREST:
+            case MESA_PLATEAU:
+            case SAVANNA_PLATEAU_MOUNTAINS:
             case MESA_PLATEAU_FOREST_MOUNTAINS:
             case MESA_PLATEAU_MOUNTAINS:
+                cornerBlocks = Material.COAL_BLOCK;
+                cornerData = 0;
+                edgeBlocks = Material.COAL_BLOCK;
+                edgeData = 0;
+                wallBlocks = Material.COAL_BLOCK;
+                wallData = 0;
+                floorBlocks = Material.COAL_BLOCK;
+                floorData = 0;
+                break;
+            //plateaus are coal quarries          
+
             case BIRCH_FOREST_MOUNTAINS:
             case BIRCH_FOREST_HILLS_MOUNTAINS:
-            case ROOFED_FOREST_MOUNTAINS:
+                cornerBlocks = Material.LOG;
+                cornerData = 14;
+                edgeBlocks = Material.LOG;
+                edgeData = 14;
+                wallBlocks = Material.LOG;
+                wallData = 14;
+                floorBlocks = Material.WOOD;
+                floorData = 2;
+                break;
+            //birch forest is halls of birch wood
+
             case MEGA_SPRUCE_TAIGA:
             case MEGA_SPRUCE_TAIGA_HILLS:
                 cornerBlocks = Material.QUARTZ_BLOCK;

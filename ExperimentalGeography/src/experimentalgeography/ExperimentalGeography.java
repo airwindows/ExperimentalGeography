@@ -4,9 +4,14 @@
  */
 package experimentalgeography;
 
+import com.google.common.base.Charsets;
+import com.google.common.io.Files;
+import java.io.File;
+import java.io.IOException;
 import java.util.*;
 
 import org.bukkit.*;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.event.*;
 import org.bukkit.event.world.*;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -95,7 +100,86 @@ public class ExperimentalGeography extends JavaPlugin implements Listener {
         }
         return new Random((seedx * seedz) + world.getSeed());
     }
+    
+    @Override
+    public void onLoad() {
+        super.onLoad();
 
+        List<String> toNuke = Arrays.asList("experimentalgeography.txt", "world", "world_nether", "world_the_end");
+        //we know which ones we want gone, and this mod is a plug-and-go mod, intended for repeated cycling with random seeds
+        //so that every experience can be novel and different. Directory nuke code by Dan
+
+        for (String victim : toNuke) {
+            File file = new File(victim);
+
+            if (file.exists()) {
+                if (file.isDirectory()) {
+                    getLogger().info(String.format("Deleting directory %s", victim));
+                    deleteRecursively(file);
+                } else if (getFileExtension(file).equalsIgnoreCase("json")) {
+                    getLogger().info(String.format("Clearing file %s", victim));
+                    clearJsonFile(file);
+                } else {
+                    getLogger().info(String.format("Deleting file %s", victim));
+                    file.delete();
+                }
+            }
+        }
+    }
+
+    /**
+     * This deletes a directory and all its contents, because Java does not
+     * provide that. Stupid Java!
+     *
+     * @param directory The directory (or file) to delete.
+     */
+    private static void deleteRecursively(File directory) {
+        String[] listedFiles = directory.list();
+
+        if (listedFiles != null) {
+            for (String subfile : listedFiles) {
+                File sf = new File(directory, subfile);
+                deleteRecursively(sf);
+            }
+        }
+
+        directory.delete();
+    }
+
+    /**
+     * This method removes the content of a JSON file, which we need to do
+     * because when we are loading, it's too late for Minecraft to recreate such
+     * a file. So we just empty it before it is read.
+     *
+     * @param file The JSON file to overwrite with empty content.
+     */
+    private static void clearJsonFile(File file) {
+        try {
+            Files.write("[]", file, Charsets.US_ASCII);
+        } catch (IOException ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+
+    /**
+     * This extracts the file extension from the file given. The extension
+     * returned does not include the '.' preceeding it. If the file has no
+     * extension, this method returns "".
+     *
+     * @param file The file whose extension is wanted.
+     * @return The extension, without the '.'.
+     */
+    private static String getFileExtension(File file) {
+        String name = file.getName();
+        int pos = name.lastIndexOf(".");
+
+        if (pos < 0) {
+            return "";
+        } else {
+            return name.substring(pos + 1);
+        }
+    }
+    
     @Override
     public void onEnable() {
         super.onEnable();

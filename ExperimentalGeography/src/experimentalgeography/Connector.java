@@ -8,6 +8,7 @@ import com.google.common.base.*;
 import static experimentalgeography.ExperimentalGeography.getChunkRandom;
 import java.util.*;
 import org.bukkit.*;
+import org.bukkit.inventory.*;
 import org.bukkit.block.*;
 import org.bukkit.entity.EntityType;
 
@@ -60,7 +61,7 @@ public final class Connector {
         this.wallSpare = EnumSet.of(Material.AIR, Material.GLOWSTONE, Material.NETHER_BRICK, Material.GOLD_ORE, Material.EMERALD_ORE, Material.DIAMOND_ORE, Material.MOB_SPAWNER, Material.ENDER_PORTAL_FRAME, Material.CHEST);
         this.floorSpare = EnumSet.of(Material.GLOWSTONE, Material.NETHER_BRICK, Material.EMERALD_ORE, Material.DIAMOND_ORE, Material.MOB_SPAWNER, Material.ENDER_PORTAL_FRAME, Material.CHEST);
         this.hollowSpare = EnumSet.of(Material.AIR, Material.GLOWSTONE, Material.NETHER_BRICK, Material.MOB_SPAWNER, Material.ENDER_PORTAL_FRAME, Material.CHEST);
-        this.solidColumn = EnumSet.of(Material.WEB, Material.DIAMOND_BLOCK, Material.EMERALD_BLOCK, Material.LAPIS_BLOCK, Material.GOLD_BLOCK, Material.MONSTER_EGGS, Material.MOB_SPAWNER, Material.TNT);
+        this.solidColumn = EnumSet.of(Material.WEB, Material.DIAMOND_BLOCK, Material.EMERALD_BLOCK, Material.LAPIS_BLOCK, Material.GOLD_BLOCK, Material.IRON_BLOCK, Material.WOOD, Material.MONSTER_EGGS, Material.MOB_SPAWNER, Material.TNT);
 
 
     }
@@ -199,12 +200,13 @@ public final class Connector {
     }
 
     public void decorate() {
+        Random random = new Random();
 
         if ((this.biome == biome.HELL) || (this.biome == biome.SKY) || this.biome.name().contains("ICE") || this.biome.name().contains("FROZEN")) {
             //bail without doing anything if we're in Nether or End or an Ice or Frozen biome
             return;
         }
-        final int darkness = (int) ((this.biome.ordinal() * 0.2) + 30);
+        final int darkness = (int) ((this.biome.ordinal() * 0.2) + 27);
         double dist = 0.0;
         //distance between nodes has to be smaller than this to place features
         Material ceilingLight = Material.GLOWSTONE;
@@ -225,7 +227,8 @@ public final class Connector {
         //these get overridden randomly. It's independent of the tunnel biome override as they are not just
         //assigning stuff according to biome, it's increasing the pool of possible outcomes according to the biome #
 
-        int randomIndex = itemPickRandom.nextInt(Math.max(1, this.biome.ordinal()) + 27);
+        int dangerZone = Math.max(1, this.biome.ordinal()) + 27;
+        int randomIndex = itemPickRandom.nextInt(dangerZone);
         //from 7 swampland to 67 Mega Spruce Taiga Hills
         //our overrides are a big switch with the normal ones low and the crazy stuff high
         switch (randomIndex) {
@@ -234,83 +237,145 @@ public final class Connector {
                 floorFeature = Material.AIR;
                 //hole for a water stream to fall into
                 break;
-            case 22:
             case 24:
                 ceilingLight = Material.LAVA;
                 floorFeature = Material.AIR;
                 break;
+            case 7:
+            case 9:
+                floorFeature = Material.OBSIDIAN;
+                //chest trigger
+                break;
             case 34:
                 ceilingLight = Material.OBSIDIAN;
                 floorFeature = Material.TNT;
-                //boobytrap
+                //boobytrap chest
                 break;
-            case 56:
-                ceilingLight = Material.TNT;
-                floorFeature = Material.TNT;
-                //vertical TNT pillar, just to be disturbing
+            case 27:
+            case 32:
+            case 35:
+            case 36:
+            case 37:
+                floorFeature = Material.COAL_BLOCK;
                 break;
             case 8:
                 floorFeature = Material.DIRT;
                 //plant trees or try to
                 break;
+
             case 25:
             case 26:
-            case 27:
-            case 32:
-            case 36:
-            case 37:
-                floorFeature = Material.COAL_BLOCK;
-                break;
-            case 35:
-            case 54:
             case 44:
             case 45:
             case 46:
-                ceilingLight = Material.IRON_BLOCK;
-                floorFeature = Material.IRON_BLOCK;
-                break;
             case 47:
-                ceilingLight = Material.GOLD_BLOCK;
-                floorFeature = Material.GOLD_BLOCK;
-                break;
+            case 54:
             case 55:
-                ceilingLight = Material.LAPIS_BLOCK;
-                floorFeature = Material.LAPIS_BLOCK;
-                break;
+            case 56:
             case 57:
-                ceilingLight = Material.EMERALD_BLOCK;
-                floorFeature = Material.EMERALD_BLOCK;
-                //fight past all the monstrosity and there can be rewards
+            case 80:
+                switch ((int) (dangerZone / 7.5)) {
+                    case 0:
+                    case 1:
+                    case 2:
+                        ceilingLight = Material.WOOD;
+                        floorFeature = Material.WOOD;
+                        break;
+                    case 3:
+                    case 4:
+                    case 5:
+                        ceilingLight = Material.IRON_BLOCK;
+                        floorFeature = Material.IRON_BLOCK;
+                    case 6:
+                    case 7:
+                        ceilingLight = Material.GOLD_BLOCK;
+                        floorFeature = Material.GOLD_BLOCK;
+                        break;
+                    case 8:
+                        ceilingLight = Material.EMERALD_BLOCK;
+                        floorFeature = Material.EMERALD_BLOCK;
+                        break;
+                    case 9:
+                        ceilingLight = Material.LAPIS_BLOCK;
+                        floorFeature = Material.LAPIS_BLOCK;
+                        break;
+                    case 10:
+                        ceilingLight = Material.TNT;
+                        floorFeature = Material.TNT;
+                        break;
+                    case 11:
+                    case 12:
+                        ceilingLight = Material.DIAMOND_BLOCK;
+                        floorFeature = Material.DIAMOND_BLOCK;
+                        break;
+                }
+                //the pillars. They provide a guideline of what sort of hell awaits.
                 break;
-            case 75:
-                ceilingLight = Material.MOB_SPAWNER;
-                floorFeature = Material.MOB_SPAWNER;
-                mobType = EntityType.PIG_ZOMBIE;
-                //the scary ones
-                break;
-            case 76:
-                ceilingLight = Material.MOB_SPAWNER;
-                floorFeature = Material.MOB_SPAWNER;
-                mobType = EntityType.ZOMBIE;
-                //the scary ones
-                break;
-            case 77:
-                ceilingLight = Material.MOB_SPAWNER;
-                floorFeature = Material.MOB_SPAWNER;
-                mobType = EntityType.SKELETON;
-                //the scary ones
-                break;
-            case 78:
-                ceilingLight = Material.MOB_SPAWNER;
-                floorFeature = Material.MOB_SPAWNER;
-                mobType = EntityType.CREEPER;
-                //the scary ones
-                break;
-            case 79:
-                ceilingLight = Material.MOB_SPAWNER;
-                floorFeature = Material.MOB_SPAWNER;
-                mobType = EntityType.SILVERFISH;
-                //the scary ones
+
+            case 17:
+            case 18:
+            case 19:
+            case 20:
+            case 21:
+            case 22:
+                if (itemPickRandom.nextInt(dangerZone) < 3) {
+                    ceilingLight = Material.MOB_SPAWNER;
+                    floorFeature = Material.MOB_SPAWNER;
+                    //the bail-out. Without it we have gradiated spawners approaching danger.
+                    //With it, you can see the tower spawners.
+                    //The 3 and under is less likely for high danger zones, more common for safer ones (smaller rnd pool)
+                }
+
+                switch ((int) (dangerZone / 7.5)) {
+                    case 0:
+                        mobType = EntityType.CHICKEN;
+                        floorFeature = Material.MOB_SPAWNER;
+                        break;
+                    case 1:
+                        mobType = EntityType.PIG;
+                        floorFeature = Material.MOB_SPAWNER;
+                        break;
+                    case 2:
+                        mobType = EntityType.COW;
+                        floorFeature = Material.MOB_SPAWNER;
+                        //these don't work without grass to spawn on: left as an exercise for the player
+                        //grass blocks can be had from high level trapped chests if you're lucky, or make a trail
+                        break;
+                    case 3:
+                        mobType = EntityType.ZOMBIE;
+                        floorFeature = Material.MOB_SPAWNER;
+                        break;
+                    case 4:
+                        mobType = EntityType.SKELETON;
+                        floorFeature = Material.MOB_SPAWNER;
+                        break;
+                    case 5:
+                        mobType = EntityType.CREEPER;
+                        floorFeature = Material.MOB_SPAWNER;
+                        break;
+                    case 6:
+                    case 7:
+                        floorFeature = Material.MOB_SPAWNER;
+                        mobType = EntityType.BLAZE;
+                        break;
+                    case 8:
+                    case 9:
+                        floorFeature = Material.MOB_SPAWNER;
+                        mobType = EntityType.PIG_ZOMBIE;
+                        break;
+                    case 10:
+                        floorFeature = Material.MOB_SPAWNER;
+                        mobType = EntityType.GHAST;
+                        //these you can see at a distance, somewhat
+                        break;
+                    case 11:
+                    case 12:
+                        mobType = EntityType.WITHER;
+                        //not allowing witherspawns unless part of the cage match illuminated funbox
+                        break;
+                }
+                //fountain of mobs! Can be nearly anything, so do NOT approach unwarily.
+                //May need nerfing as this is a 'destroy EVERYTHING' trap.
                 break;
 
             case 82:
@@ -320,45 +385,32 @@ public final class Connector {
             case 86:
             case 87:
             case 88:
-            case 89:
             case 90:
-                ceilingLight = Material.DIAMOND_ORE;
+                ceilingLight = Material.GLOWSTONE;
                 floorFeature = Material.DIAMOND_BLOCK;
                 //fight past all the monstrosity and there can be rewards
                 //not lit, and beware the diamond block pillar, just saiyan
                 break;
-            case 15:
-                ceilingLight = Material.AIR;
-                floorFeature = Material.MOB_SPAWNER;
-                mobType = EntityType.CHICKEN;
-                break;
-            case 16:
-                ceilingLight = Material.AIR;
-                floorFeature = Material.MOB_SPAWNER;
-                mobType = EntityType.COW;
-                break;
-            case 17:
-                ceilingLight = Material.AIR;
-                floorFeature = Material.MOB_SPAWNER;
-                mobType = EntityType.PIG;
-                break;
-            case 18:
-                floorFeature = Material.MOB_SPAWNER;
-                mobType = EntityType.ZOMBIE;
-                break;
-            case 19:
-                floorFeature = Material.MOB_SPAWNER;
-                mobType = EntityType.SKELETON;
-                break;
             case 28:
-                floorFeature = Material.MOB_SPAWNER;
-                mobType = EntityType.CREEPER;
-                break;
             case 29:
-                ceilingLight = Material.WEB;
                 floorFeature = Material.MOB_SPAWNER;
-                mobType = EntityType.SPIDER;
+                int randomMobs = itemPickRandom.nextInt(4);
+                switch (randomMobs) {
+                    case 0:
+                        mobType = EntityType.ZOMBIE;
+                        break;
+                    case 1:
+                        mobType = EntityType.SKELETON;
+                        break;
+                    case 2:
+                        mobType = EntityType.SPIDER;
+                        break;
+                    case 3:
+                        mobType = EntityType.CREEPER;
+                        break;
+                }
                 break;
+            //our base random mob spawners
             case 38:
                 floorFeature = Material.MOB_SPAWNER;
                 mobType = EntityType.WITCH;
@@ -373,14 +425,13 @@ public final class Connector {
                 ceilingLight = Material.WEB;
                 floorFeature = Material.MOB_SPAWNER;
                 mobType = EntityType.CAVE_SPIDER;
+                //web column always means cavespider
                 break;
             case 49:
                 ceilingLight = Material.MONSTER_EGGS;
                 floorFeature = Material.MOB_SPAWNER;
                 mobType = EntityType.SILVERFISH;
                 break;
-            case 58:
-            case 59:
             case 60:
             case 61:
                 ceilingLight = Material.SOUL_SAND;
@@ -388,37 +439,16 @@ public final class Connector {
                 mobType = EntityType.PIG_ZOMBIE;
                 //all the nether guy spawners have little caches of netherwart on top
                 break;
-            case 62:
-            case 63:
-            case 64:
-            case 65:
-            case 66:
-            case 67:
             case 68:
             case 69:
                 ceilingLight = Material.SOUL_SAND;
                 floorFeature = Material.MOB_SPAWNER;
                 mobType = EntityType.BLAZE;
                 break;
-            case 70:
-            case 71:
-            case 72:
-            case 73:
             case 74:
                 ceilingLight = Material.SOUL_SAND;
                 floorFeature = Material.MOB_SPAWNER;
                 mobType = EntityType.GHAST;
-                break;
-            case 80:
-                ceilingLight = Material.DIAMOND_BLOCK;
-                floorFeature = Material.MOB_SPAWNER;
-                mobType = EntityType.WITHER;
-                if (this.biome.name().contains("EXTREME")) {
-                    //not THAT extreme! Let the player see the bomb first!
-                    ceilingLight = Material.GLASS;
-                    floorFeature = Material.BEDROCK;
-                }
-                //may be unreachable, but yowza!
                 break;
             case 81:
                 floorFeature = Material.BEDROCK;
@@ -437,8 +467,12 @@ public final class Connector {
             Block block;
             if (ChunkPosition.of(target).contains(x, z)) {
                 block = world.getBlockAt(x, y, z);
-                while ((block.getType() == Material.AIR) && block.getY() < 80) {
+                while ((block.getType() == Material.AIR) && block.getY() < 200) {
                     block = block.getRelative(BlockFace.UP);
+                }
+                if (block.getY() > 190) {
+                    block.getLocation().setY(60.0);
+                    //if we didn't even hit a roof skip right back down to 60
                 }
                 block.setType(ceilingLight);
                 if (ceilingLight == Material.SOUL_SAND) {
@@ -456,6 +490,18 @@ public final class Connector {
                             CreatureSpawner spawner = ((CreatureSpawner) blockState);
                             spawner.setSpawnedType(mobType);
                             blockState.update();
+                            if (dangerZone > 82.5) {
+                                //we're doing a mob pillar and it is WITHER
+                                //make a steel cage to look alarming
+                                block.getRelative(1, 0, 0).setType(Material.IRON_FENCE);
+                                block.getRelative(-1, 0, 0).setType(Material.IRON_FENCE);
+                                block.getRelative(0, 0, 1).setType(Material.IRON_FENCE);
+                                block.getRelative(0, 0, -1).setType(Material.IRON_FENCE);
+                                block.getRelative(1, 0, 1).setType(Material.IRON_FENCE);
+                                block.getRelative(1, 0, -1).setType(Material.IRON_FENCE);
+                                block.getRelative(-1, 0, 1).setType(Material.IRON_FENCE);
+                                block.getRelative(-1, 0, -1).setType(Material.IRON_FENCE);
+                            }
                         }
                         block = block.getRelative(BlockFace.DOWN);
                     }
@@ -496,28 +542,51 @@ public final class Connector {
 
 
                 if (floorFeature == Material.MOB_SPAWNER) {
-                    BlockState blockState = block.getState();
-                    CreatureSpawner spawner = ((CreatureSpawner) blockState);
-                    spawner.setSpawnedType(mobType);
-                    blockState.update();
-                    if ((mobType == EntityType.COW) || (mobType == EntityType.PIG) || (mobType == EntityType.CHICKEN)) {
-                        block.getRelative(1, 0, 0).setType(Material.GRASS);
-                        //food mobs need to spawn on grass
-                    }
-                    if (mobType == EntityType.CREEPER) {
-                        block.getRelative(1, 0, 0).setType(Material.TNT);
-                        block.getRelative(-1, 0, 0).setType(Material.TNT);
-                        block.getRelative(0, 0, 1).setType(Material.TNT);
-                        block.getRelative(0, 0, -1).setType(Material.TNT);
-                        block.getRelative(1, 0, 1).setType(Material.TNT);
-                        block.getRelative(1, 0, -1).setType(Material.TNT);
-                        block.getRelative(-1, 0, 1).setType(Material.TNT);
-                        block.getRelative(-1, 0, -1).setType(Material.TNT);
-                        //creepers spawn on TNT for added WTF
+                    if (ceilingLight == Material.MOB_SPAWNER) {
+                        block.setType(Material.GLOWSTONE);
+                        //if we have a tower, light the base: simplest
+                    } else {
+                        BlockState blockState = block.getState();
+                        CreatureSpawner spawner = ((CreatureSpawner) blockState);
+                        spawner.setSpawnedType(mobType);
+                        blockState.update();
+                        if ((mobType == EntityType.COW) || (mobType == EntityType.PIG) || (mobType == EntityType.CHICKEN)) {
+                            block.getRelative(1, 0, 0).setType(Material.GRASS);
+                            //food mobs need to spawn on grass
+                        }
+                        if (mobType == EntityType.CREEPER) {
+                            block.getRelative(1, 0, 0).setType(Material.TNT);
+                            block.getRelative(-1, 0, 0).setType(Material.TNT);
+                            block.getRelative(0, 0, 1).setType(Material.TNT);
+                            block.getRelative(0, 0, -1).setType(Material.TNT);
+                            block.getRelative(1, 0, 1).setType(Material.TNT);
+                            block.getRelative(1, 0, -1).setType(Material.TNT);
+                            block.getRelative(-1, 0, 1).setType(Material.TNT);
+                            block.getRelative(-1, 0, -1).setType(Material.TNT);
+                            //creepers spawn on TNT for added WTF
+                        }
                     }
                 }
                 if ((floorFeature == Material.TNT) && (ceilingLight == Material.OBSIDIAN)) {
                     block.getRelative(0, 1, 0).setType(Material.TRAPPED_CHEST);
+                    BlockState bs = block.getRelative(0, 1, 0).getState();
+                    Chest chest = (Chest) bs;
+                    for (int chestSlot = 0; chestSlot < 27; ++chestSlot) {
+                        int typeID = random.nextInt((int) (Math.min(Math.pow(this.biome.ordinal(), 2), 166))) + 256;
+                        ItemStack thisSlot = new ItemStack(typeID, 1);
+                        int maxSize = thisSlot.getMaxStackSize();
+                        if (this.biome.ordinal() < 41) {
+                            maxSize = random.nextInt(maxSize + 1);
+                            //if the biome is SUPER INSANE then we get max stack size on top of everything else
+                        }
+                        if (maxSize == 0) {
+                            maxSize = 1;
+                        }
+                        //no limitation on max random loot for the trapped chests, and only the fancy stuff
+                        //this does omit command blocks
+                        chest.getBlockInventory().setItem(chestSlot, new ItemStack(typeID, maxSize, (short) 0));
+                    }
+                    chest.update();
                     if (this.biome.ordinal() > 10) {
                         block.getRelative(0, -1, 0).setType(Material.TNT);
                     }
@@ -526,13 +595,9 @@ public final class Connector {
                     }
                     if (this.biome.ordinal() > 30) {
                         block.getRelative(0, -3, 0).setType(Material.TNT);
-                        block.getRelative(0, 1, 0).setType(Material.TRAPPED_CHEST);
                     }
                     if (this.biome.ordinal() > 40) {
                         block.getRelative(0, -4, 0).setType(Material.TNT);
-                    }
-                    if (this.biome.ordinal() > 50) {
-                        block.getRelative(0, 1, 0).setType(Material.TRAPPED_CHEST);
                         block.getRelative(1, -2, 0).setType(Material.TNT);
                         block.getRelative(-1, -2, 0).setType(Material.TNT);
                         block.getRelative(0, -2, 1).setType(Material.TNT);
@@ -541,6 +606,8 @@ public final class Connector {
                         block.getRelative(1, -2, -1).setType(Material.TNT);
                         block.getRelative(-1, -2, 1).setType(Material.TNT);
                         block.getRelative(-1, -2, -1).setType(Material.TNT);
+                    }
+                    if (this.biome.ordinal() > 50) {
                         block.getRelative(1, -3, 0).setType(Material.TNT);
                         block.getRelative(-1, -3, 0).setType(Material.TNT);
                         block.getRelative(0, -3, 1).setType(Material.TNT);
@@ -560,6 +627,42 @@ public final class Connector {
                         //silly large explosion if it's a gold plate
                     }
                     //boom! that gets worse as you go to more dangerous areas. Mobs can also trip it.
+                }
+                if (floorFeature == Material.OBSIDIAN) {
+                    block.getRelative(0, 1, 0).setType(Material.CHEST);
+                    BlockState bs = block.getRelative(0, 1, 0).getState();
+                    Chest chest = (Chest) bs;
+                    for (int chestSlot = 0; chestSlot < 27; ++chestSlot) {
+                        int typeID = random.nextInt((int) Math.max(Math.min(Math.pow(this.biome.ordinal(), 2), 422), 1));
+                        //exclusive of the command block minecart this way
+                        if (typeID == 0) {
+                            typeID = 267;
+                        }
+                        if (typeID == 1) {
+                            typeID = 4;
+                        }
+                        if (typeID == 2) {
+                            typeID = 50;
+                        }
+                        if (typeID == 3) {
+                            typeID = 364;
+                        }
+
+
+
+                        ItemStack thisSlot = new ItemStack(typeID, 1);
+                        if (typeID != 137) {
+                            //maybe if you tell it a bad ID it will be a null? I dunno.
+                            int maxSize = (int) Math.sqrt(thisSlot.getMaxStackSize());
+                            maxSize = random.nextInt(maxSize + 1);
+                            if (maxSize == 0) {
+                                maxSize = 1;
+                            }
+                            //non-trapped chests have more limited numbers and a broader range of possible items
+                            chest.getBlockInventory().setItem(chestSlot, new ItemStack(typeID, maxSize, (short) 0));
+                        }
+                    }
+                    chest.update();
                 }
                 if (floorFeature == Material.BEDROCK) {
                     Location locationBuffer = block.getLocation();
@@ -681,8 +784,6 @@ public final class Connector {
                     edgeBlocks = Material.TNT;
                     edgeData = 0;
                 }
-
-
                 //hehehehehehehehe
                 break;
 

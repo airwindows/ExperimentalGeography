@@ -35,7 +35,7 @@ public final class OriginalChunkInfo implements MapFileMap.Storable {
             Random rnd = ExperimentalGeography.getChunkRandom(chunk.getWorld(), position);
             rnd.nextInt(64);
             if (chunk.getBlock(8, 8, 8).getBiome() == Biome.HELL) {
-                nodeY = rnd.nextInt(80) + 30;
+                nodeY = rnd.nextInt(60) + 50;
                 //nether is crazy catwalks of disorienting steepness
             } else {
                 nodeY = rnd.nextInt(5) + 46;
@@ -44,10 +44,10 @@ public final class OriginalChunkInfo implements MapFileMap.Storable {
         } else {
 
             if (chunk.getBlock(8, 8, 8).getBiome().name().contains("S")) {
-                nodeY = (int) Math.max(5, ((highestBlockY / 1.38) - (spotBiome * 0.6)) + 10);
+                nodeY = (int) Math.max(5, ((highestBlockY / 1.4) - (spotBiome * 0.62)) + 6);
                 //entrances in hills. Extreme are plain, others will show blocks
             } else {
-                nodeY = (int) Math.max(5, ((highestBlockY / 1.38) - (spotBiome * 0.6)) - 10);
+                nodeY = (int) Math.max(5, ((highestBlockY / 1.4) - (spotBiome * 0.62)) - 6);
             }
             //divisor controls steepness, subtract moves tunnels down nearer bedrock
             //these can be biome dependent as it will linearly shift between them

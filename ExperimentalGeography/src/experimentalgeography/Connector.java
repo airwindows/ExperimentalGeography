@@ -138,12 +138,12 @@ public final class Connector {
      */
     private Space getConnectedSpace() {
         Space space = Space.empty();
-        double tunnelWidth = 1.32 + keyBiome; //finding somewhere to stick the size-modifier
+        double tunnelWidth = 1.32 + (keyBiome * 0.9); //finding somewhere to stick the size-modifier
         if (this.biome == Biome.HELL) {
-            tunnelWidth = tunnelWidth * 1.4;
+            tunnelWidth = tunnelWidth * 1.3;
         }
         if (this.biome == Biome.SKY) {
-            tunnelWidth = tunnelWidth * 0.88;
+            tunnelWidth = tunnelWidth * 0.9;
         }
 
         for (Location end : ends) {
@@ -206,7 +206,7 @@ public final class Connector {
             //bail without doing anything if we're in Nether or End or an Ice or Frozen biome
             return;
         }
-        final int darkness = (int) ((this.biome.ordinal() * 0.2) + 27);
+        final int darkness = (int) ((this.biome.ordinal() * 0.25) + 30);
         double dist = 0.0;
         //distance between nodes has to be smaller than this to place features
         Material ceilingLight = Material.GLOWSTONE;

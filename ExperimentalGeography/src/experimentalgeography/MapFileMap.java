@@ -436,16 +436,20 @@ public final class MapFileMap extends HashMap<String, Object> {
         StringBuilder b = new StringBuilder(text);
 
         for (int i = 0; i < b.length() - 1; ++i) {
-            if (b.charAt(i) == '\\') {
+            if (b.charAt(i) == '§') {
                 char next = b.charAt(i + 1);
+                String replacement;
+
                 if (next == 'n') {
-                    b.replace(i, 2, NEW_LINE);
-                    i += NEW_LINE.length() - 1;
+                    replacement = NEW_LINE;
                 } else if (next == '-') {
-                    b.replace(i, 2, "=");
+                    replacement = "=";
                 } else {
-                    b.replace(i, 1, "");
+                    replacement = "";
                 }
+
+                b.replace(i, 2, replacement);
+                i += replacement.length() - 1;
             }
         }
 

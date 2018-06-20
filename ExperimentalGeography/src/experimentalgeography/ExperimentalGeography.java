@@ -15,6 +15,7 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.event.*;
 import org.bukkit.event.world.*;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.event.player.PlayerRespawnEvent;
 
 /**
  * This is the main plugin class for the plugin; it listens to events.
@@ -34,8 +35,7 @@ public class ExperimentalGeography extends JavaPlugin implements Listener {
     }
 
     /**
-     * This method is called once per chunk, when the chunk is first
-     * initialized. It can add extra blocks to the chunk.
+     * This method is called once per chunk, when the chunk is first initialized. It can add extra blocks to the chunk.
      *
      * @param chunk The chunk to populate.
      */
@@ -76,7 +76,7 @@ public class ExperimentalGeography extends JavaPlugin implements Listener {
         OriginalChunkInfo whereInfo = populationSchedule.getOriginalChunkInfo(where);
         Location start = perturbNode(world, where, whereInfo.nodeY);
 
-        Connector connector = new Connector(where.getChunk(), start, adjacentNodes, surroundingNodes);
+        Connector connector = new Connector(where.getChunk(), start, adjacentNodes, surroundingNodes, whereInfo.highestBlockY);
         connector.connect();
         connector.decorate();
     }
@@ -100,14 +100,16 @@ public class ExperimentalGeography extends JavaPlugin implements Listener {
         }
         return new Random((seedx * seedz) + world.getSeed());
     }
-    
+
     @Override
     public void onLoad() {
         super.onLoad();
 
-        List<String> toNuke = Arrays.asList("experimentalgeography.txt", "world", "world_nether", "world_the_end");
+        List<String> toNuke = Arrays.asList(""); //Arrays.asList("experimentalgeography.txt", "world", "world_nether", "world_the_end");
+       //List<String> toNuke = Arrays.asList("experimentalgeography.txt", "world", "world_nether", "world_the_end");
         //we know which ones we want gone, and this mod is a plug-and-go mod, intended for repeated cycling with random seeds
         //so that every experience can be novel and different. Directory nuke code by Dan
+        //If no world nuking, we will feed this a blank list
 
         for (String victim : toNuke) {
             File file = new File(victim);
@@ -128,8 +130,7 @@ public class ExperimentalGeography extends JavaPlugin implements Listener {
     }
 
     /**
-     * This deletes a directory and all its contents, because Java does not
-     * provide that. Stupid Java!
+     * This deletes a directory and all its contents, because Java does not provide that. Stupid Java!
      *
      * @param directory The directory (or file) to delete.
      */
@@ -147,9 +148,8 @@ public class ExperimentalGeography extends JavaPlugin implements Listener {
     }
 
     /**
-     * This method removes the content of a JSON file, which we need to do
-     * because when we are loading, it's too late for Minecraft to recreate such
-     * a file. So we just empty it before it is read.
+     * This method removes the content of a JSON file, which we need to do because when we are loading, it's too late for
+     * Minecraft to recreate such a file. So we just empty it before it is read.
      *
      * @param file The JSON file to overwrite with empty content.
      */
@@ -159,12 +159,11 @@ public class ExperimentalGeography extends JavaPlugin implements Listener {
         } catch (IOException ex) {
             throw new RuntimeException(ex);
         }
-    }
-
+    } 
+    
     /**
-     * This extracts the file extension from the file given. The extension
-     * returned does not include the '.' preceeding it. If the file has no
-     * extension, this method returns "".
+     * This extracts the file extension from the file given. The extension returned does not include the '.' preceeding it. If the
+     * file has no extension, this method returns "".
      *
      * @param file The file whose extension is wanted.
      * @return The extension, without the '.'.
@@ -178,8 +177,8 @@ public class ExperimentalGeography extends JavaPlugin implements Listener {
         } else {
             return name.substring(pos + 1);
         }
-    }
-    
+    } 
+
     @Override
     public void onEnable() {
         super.onEnable();
@@ -194,6 +193,15 @@ public class ExperimentalGeography extends JavaPlugin implements Listener {
             lazyPopulationSchedule.save();
         }
     }
+
+   /* @EventHandler
+    public void onPlayerRespawn(PlayerRespawnEvent e) {
+        World world = e.getPlayer().getWorld();
+        Location loc = world.getSpawnLocation();
+        e.getPlayer().getEnderChest().clear();
+        e.setRespawnLocation(loc);
+        //Permadeath. This game is a Roguelike, so it has infinite terrain generation and puts you back at the start if you die.        
+    } */
 
     @EventHandler
     public void onChunkLoad(ChunkLoadEvent e) {

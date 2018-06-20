@@ -412,7 +412,7 @@ public abstract class Space {
     ////////////////////////////////
     // Block Comparison
     //
-    private static final Comparator<Block> BLOCK_COMPARATOR = new Comparator<Block>() {
+    private static final java.util.Comparator<Block> BLOCK_COMPARATOR = new java.util.Comparator<Block>() {
         @Override
         public int compare(Block left, Block right) {
             if (left == right) {
